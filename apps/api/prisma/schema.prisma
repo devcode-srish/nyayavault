@@ -1,0 +1,383 @@
+// NyayaVault - Prisma schema
+// Phase 1: full model set is defined now so later phases don't require
+// destructive migrations. Only Auth/User/RBAC pieces are wired into the
+// API in Phase 1 — the rest light up in later phases.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ================= ENUMS =================
+
+enum Role {
+  ADMIN
+  INVESTIGATING_OFFICER
+  SENIOR_OFFICER
+  FORENSIC_OFFICER
+  LEGAL_OFFICER
+}
+
+enum CaseStatus {
+  OPEN
+  UNDER_REVIEW
+  CLOSED
+  ARCHIVED
+}
+
+enum Classification {
+  PUBLIC
+  INTERNAL
+  RESTRICTED
+  CONFIDENTIAL
+}
+
+enum IntegrityStatus {
+  VERIFIED
+  UNVERIFIED
+  MISMATCH
+}
+
+enum SignatureStatus {
+  UNSIGNED
+  SIGNED
+  VERIFICATION_FAILED
+}
+
+enum AccessRequestStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  EXPIRED
+}
+
+enum AuditAction {
+  LOGIN
+  LOGOUT
+  DOCUMENT_UPLOADED
+  DOCUMENT_VIEWED
+  DOCUMENT_DOWNLOADED
+  VERSION_CREATED
+  ACCESS_REQUESTED
+  ACCESS_APPROVED
+  ACCESS_REJECTED
+  DOCUMENT_SHARED
+  DOCUMENT_SIGNED
+  SIGNATURE_VERIFIED
+  INTEGRITY_CHECK
+  INTEGRITY_MISMATCH
+  TAMPER_SIMULATED
+  EVIDENCE_TRANSFERRED
+  USER_CREATED
+  ROLE_CHANGED
+  CASE_CREATED
+  AI_QUERY
+}
+
+enum EvidenceStatus {
+  COLLECTED
+  IN_ANALYSIS
+  ANALYZED
+  RELEASED
+}
+
+enum NotificationType {
+  ACCESS_REQUEST
+  ACCESS_APPROVED
+  ACCESS_REJECTED
+  INTEGRITY_ALERT
+  SIGNATURE_REQUEST
+  GENERAL
+}
+
+// ================= MODELS =================
+
+model User {
+  id            String    @id @default(cuid())
+  email         String    @unique
+  passwordHash  String
+  name          String
+  role          Role
+  isActive      Boolean   @default(true)
+  refreshTokens RefreshToken[]
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  caseMemberships   CaseMember[]
+  uploadedDocuments Document[]        @relation("UploadedBy")
+  documentVersions  DocumentVersion[] @relation("VersionCreatedBy")
+  auditLogs         AuditLog[]
+  accessRequestsMade     AccessRequest[] @relation("RequestedBy")
+  accessRequestsDecided  AccessRequest[] @relation("DecidedBy")
+  documentAccessGrants   DocumentAccess[]
+  signatures        DigitalSignature[]
+  notifications     Notification[]
+  aiQueries         AIQuery[]
+  shareLinksCreated ShareLink[]
+  evidenceTransfersFrom EvidenceTransfer[] @relation("TransferFrom")
+  evidenceTransfersTo   EvidenceTransfer[] @relation("TransferTo")
+  timelineEvents    InvestigationTimelineEvent[]
+
+  @@index([role])
+}
+
+model RefreshToken {
+  id        String   @id @default(cuid())
+  token     String   @unique
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expiresAt DateTime
+  revoked   Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+}
+
+model Case {
+  id          String     @id @default(cuid())
+  caseNumber  String     @unique
+  title       String
+  description String?
+  status      CaseStatus @default(OPEN)
+  isSynthetic Boolean    @default(true)
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+
+  members            CaseMember[]
+  documents          Document[]
+  evidenceItems      EvidenceItem[]
+  timelineEvents     InvestigationTimelineEvent[]
+  aiQueries          AIQuery[]
+
+  @@index([status])
+}
+
+model CaseMember {
+  id        String   @id @default(cuid())
+  caseId    String
+  case      Case     @relation(fields: [caseId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  roleInCase String  // e.g. "LEAD_INVESTIGATOR", "SUPERVISOR", "FORENSIC_ANALYST", "LEGAL_REVIEWER"
+  addedAt   DateTime @default(now())
+
+  @@unique([caseId, userId])
+  @@index([userId])
+}
+
+model Document {
+  id               String          @id @default(cuid())
+  caseId           String
+  case             Case            @relation(fields: [caseId], references: [id], onDelete: Cascade)
+  name             String
+  type             String
+  classification   Classification  @default(INTERNAL)
+  uploadedById     String
+  uploadedBy       User            @relation("UploadedBy", fields: [uploadedById], references: [id])
+  latestVersionNo  Int             @default(1)
+  integrityStatus  IntegrityStatus @default(UNVERIFIED)
+  signatureStatus  SignatureStatus @default(UNSIGNED)
+  createdAt        DateTime        @default(now())
+  updatedAt        DateTime        @updatedAt
+
+  versions       DocumentVersion[]
+  accessGrants   DocumentAccess[]
+  accessRequests AccessRequest[]
+  signatures     DigitalSignature[]
+  auditLogs      AuditLog[]
+  extractedEntities ExtractedEntity[]
+  shareLinks     ShareLink[]
+
+  @@index([caseId])
+  @@index([classification])
+}
+
+model DocumentVersion {
+  id            String   @id @default(cuid())
+  documentId    String
+  document      Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  versionNo     Int
+  storageKey    String   // internal path/key — never exposed to client directly
+  originalName  String
+  mimeType      String
+  sizeBytes     Int
+  sha256        String
+  createdById   String
+  createdBy     User     @relation("VersionCreatedBy", fields: [createdById], references: [id])
+  createdAt     DateTime @default(now())
+  notes         String?
+
+  signatures DigitalSignature[]
+
+  @@unique([documentId, versionNo])
+  @@index([documentId])
+}
+
+model DocumentAccess {
+  id         String   @id @default(cuid())
+  documentId String
+  document   Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  userId     String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  grantedAt  DateTime @default(now())
+  expiresAt  DateTime?
+
+  @@unique([documentId, userId])
+  @@index([userId])
+}
+
+model AccessRequest {
+  id           String              @id @default(cuid())
+  documentId   String
+  document     Document            @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  requestedById String
+  requestedBy   User               @relation("RequestedBy", fields: [requestedById], references: [id])
+  decidedById   String?
+  decidedBy     User?              @relation("DecidedBy", fields: [decidedById], references: [id])
+  status        AccessRequestStatus @default(PENDING)
+  reason        String?
+  expiresAt     DateTime?
+  createdAt     DateTime            @default(now())
+  decidedAt     DateTime?
+
+  @@index([documentId])
+  @@index([status])
+}
+
+model AuditLog {
+  id         String      @id @default(cuid())
+  action     AuditAction
+  actorId    String?
+  actor      User?       @relation(fields: [actorId], references: [id])
+  documentId String?
+  document   Document?   @relation(fields: [documentId], references: [id])
+  caseId     String?
+  targetUserId String?
+  notes      String?
+  metadata   Json?
+  createdAt  DateTime    @default(now())
+
+  @@index([actorId])
+  @@index([documentId])
+  @@index([action])
+  @@index([createdAt])
+}
+
+model EvidenceItem {
+  id           String         @id @default(cuid())
+  caseId       String
+  case         Case           @relation(fields: [caseId], references: [id], onDelete: Cascade)
+  name         String
+  description  String?
+  status       EvidenceStatus @default(COLLECTED)
+  currentCustodianId String?
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
+
+  transfers EvidenceTransfer[]
+
+  @@index([caseId])
+}
+
+model EvidenceTransfer {
+  id          String       @id @default(cuid())
+  evidenceId  String
+  evidence    EvidenceItem @relation(fields: [evidenceId], references: [id], onDelete: Cascade)
+  fromUserId  String?
+  fromUser    User?        @relation("TransferFrom", fields: [fromUserId], references: [id])
+  toUserId    String
+  toUser      User         @relation("TransferTo", fields: [toUserId], references: [id])
+  notes       String?
+  transferredAt DateTime   @default(now())
+
+  @@index([evidenceId])
+}
+
+model DigitalSignature {
+  id               String          @id @default(cuid())
+  documentId       String
+  document         Document        @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  documentVersionId String
+  documentVersion  DocumentVersion @relation(fields: [documentVersionId], references: [id], onDelete: Cascade)
+  signerId         String
+  signer           User            @relation(fields: [signerId], references: [id])
+  algorithm        String          @default("RSA-SHA256-PROTOTYPE")
+  signatureValue   String
+  status           SignatureStatus @default(SIGNED)
+  signedAt         DateTime        @default(now())
+  verifiedAt       DateTime?
+
+  @@index([documentId])
+}
+
+model AIQuery {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  caseId    String?
+  case      Case?    @relation(fields: [caseId], references: [id])
+  prompt    String
+  response  String
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@index([caseId])
+}
+
+model ExtractedEntity {
+  id         String   @id @default(cuid())
+  documentId String
+  document   Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  type       String   // PERSON, ORG, LOCATION, DATE, AMOUNT, etc.
+  value      String
+  confidence Float    @default(0.8)
+  createdAt  DateTime @default(now())
+
+  @@index([documentId])
+}
+
+model InvestigationTimelineEvent {
+  id          String   @id @default(cuid())
+  caseId      String
+  case        Case     @relation(fields: [caseId], references: [id], onDelete: Cascade)
+  title       String
+  description String?
+  occurredAt  DateTime
+  createdById String?
+  createdBy   User?    @relation(fields: [createdById], references: [id])
+  createdAt   DateTime @default(now())
+
+  @@index([caseId])
+}
+
+model Notification {
+  id        String           @id @default(cuid())
+  userId    String
+  user      User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type      NotificationType
+  title     String
+  message   String
+  isRead    Boolean          @default(false)
+  createdAt DateTime         @default(now())
+
+  @@index([userId])
+}
+
+model ShareLink {
+  id           String    @id @default(cuid())
+  documentId   String
+  document     Document  @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  token        String    @unique
+  createdById  String
+  createdBy    User      @relation(fields: [createdById], references: [id])
+  expiresAt    DateTime
+  maxUses      Int       @default(1)
+  useCount     Int       @default(0)
+  createdAt    DateTime  @default(now())
+
+  @@index([documentId])
+}
