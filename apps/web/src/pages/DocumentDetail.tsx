@@ -6,6 +6,7 @@ import { PageHeader, Card, Badge } from "../components/ui";
 import CustodyTimeline, { auditLabel, auditTone, TimelineEvent } from "../components/CustodyTimeline";
 import AccessDeniedPanel from "../components/AccessDeniedPanel";
 import SharePanel from "../components/SharePanel";
+import AIAnalysisPanel from "../components/AIAnalysisPanel";
 
 const UPLOAD_ROLES = ["ADMIN", "INVESTIGATING_OFFICER", "SENIOR_OFFICER", "LEGAL_OFFICER"];
 
@@ -210,6 +211,8 @@ export default function DocumentDetail() {
             {verifyResult?.error && <span className="text-xs text-red-400">{verifyResult.error}</span>}
           </div>
         </Card>
+
+        <AIAnalysisPanel documentId={doc.id} />
 
         <Card title="Version History">
           {downloadError && <p className="text-red-400 text-sm mb-2">{downloadError}</p>}
