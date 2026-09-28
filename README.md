@@ -1,4 +1,4 @@
-# NyayaVault (SIH26190) — Phase 1
+# NyayaVault (SIH26190)
 
 Secure Digital Document Management System for Legal and Investigation Documents.
 **All data in this project is synthetic/demo data.** See `docs/DEMO.md`.
@@ -115,7 +115,7 @@ nyayavault/
 ## Roadmap (later phases)
 
 - **Phase 2:** cases, documents, uploads, SHA-256 hashing, version history, audit log UI
-- **Phase 3:** access requests/approvals, chain of custody, evidence, secure share links
+- **Phase 3 (done):** access requests/approvals, chain of custody, evidence transfers, secure share links, notifications
 - **Phase 4:** digital signatures, integrity verification, tamper demo, security center
 - **Phase 5:** AI case assistant (mock provider), entity extraction, cross-document search, timelines
 - **Phase 6:** testing, polish, full documentation

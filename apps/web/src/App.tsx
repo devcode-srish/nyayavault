@@ -7,6 +7,16 @@ import Login from "./pages/Login";
 import Dashboard from "./pages/Dashboard";
 import UsersPage from "./pages/Users";
 import ComingSoon from "./pages/ComingSoon";
+import Cases from "./pages/Cases";
+import CaseDetail from "./pages/CaseDetail";
+import Documents from "./pages/Documents";
+import DocumentDetail from "./pages/DocumentDetail";
+import Audit from "./pages/Audit";
+import AccessRequests from "./pages/AccessRequests";
+import Notifications from "./pages/Notifications";
+import Evidence from "./pages/Evidence";
+import EvidenceDetail from "./pages/EvidenceDetail";
+import SharePublic from "./pages/SharePublic";
 
 export default function App() {
   return (
@@ -14,6 +24,7 @@ export default function App() {
       <BrowserRouter>
         <Routes>
           <Route path="/login" element={<Login />} />
+          <Route path="/share/:token" element={<SharePublic />} />
           <Route
             element={
               <ProtectedRoute>
@@ -22,16 +33,17 @@ export default function App() {
             }
           >
             <Route path="/dashboard" element={<Dashboard />} />
-            <Route path="/cases" element={<ComingSoon title="Cases" phase="Phase 2" />} />
-            <Route path="/cases/:id" element={<ComingSoon title="Case Detail" phase="Phase 2" />} />
-            <Route path="/documents" element={<ComingSoon title="Documents" phase="Phase 2" />} />
-            <Route path="/documents/:id" element={<ComingSoon title="Document Detail" phase="Phase 2" />} />
-            <Route path="/evidence" element={<ComingSoon title="Evidence" phase="Phase 3" />} />
+            <Route path="/cases" element={<Cases />} />
+            <Route path="/cases/:id" element={<CaseDetail />} />
+            <Route path="/documents" element={<Documents />} />
+            <Route path="/documents/:id" element={<DocumentDetail />} />
+            <Route path="/evidence" element={<Evidence />} />
+            <Route path="/evidence/:id" element={<EvidenceDetail />} />
             <Route path="/ai" element={<ComingSoon title="AI Case Assistant" phase="Phase 5" />} />
-            <Route path="/audit" element={<ComingSoon title="Audit Log" phase="Phase 2" />} />
-            <Route path="/access-requests" element={<ComingSoon title="Access Requests" phase="Phase 3" />} />
+            <Route path="/audit" element={<Audit />} />
+            <Route path="/access-requests" element={<AccessRequests />} />
             <Route path="/signatures" element={<ComingSoon title="Signatures" phase="Phase 4" />} />
-            <Route path="/notifications" element={<ComingSoon title="Notifications" phase="Phase 3" />} />
+            <Route path="/notifications" element={<Notifications />} />
             <Route path="/users" element={<UsersPage />} />
             <Route path="/security" element={<ComingSoon title="Security Center" phase="Phase 4" />} />
             <Route path="/settings" element={<ComingSoon title="Settings" phase="Phase 6" />} />

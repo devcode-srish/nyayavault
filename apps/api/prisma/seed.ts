@@ -1,18 +1,19 @@
-import { PrismaClient, Role } from "@prisma/client";
+import { PrismaClient, Role, Classification, EvidenceStatus } from "@prisma/client";
 import argon2 from "argon2";
+import { sha256Buffer } from "../src/lib/hash";
+import { saveFile } from "../src/lib/storage";
 
 const prisma = new PrismaClient();
 
-// DEMO / SYNTHETIC DATA ONLY — no real case, person, or document data.
+// DEMO / SYNTHETIC DATA ONLY - no real case, person, or document data.
+// Safe to run repeatedly: everything is created only if it doesn't exist yet.
 const DEMO_PASSWORD = "Demo@1234";
 
 async function upsertUser(email: string, name: string, role: Role) {
+  const existing = await prisma.user.findUnique({ where: { email } });
+  if (existing) return existing;
   const passwordHash = await argon2.hash(DEMO_PASSWORD);
-  return prisma.user.upsert({
-    where: { email },
-    update: {},
-    create: { email, name, role, passwordHash },
-  });
+  return prisma.user.create({ data: { email, name, role, passwordHash } });
 }
 
 async function main() {
@@ -25,46 +26,30 @@ async function main() {
   const legal = await upsertUser("legal@nyayavault.demo", "Legal Officer Singh", "LEGAL_OFFICER");
 
   const caseData = [
-    {
-      caseNumber: "CASE-2026-0142",
-      title: "Digital Fraud Investigation",
-      description: "DEMO/SYNTHETIC: Suspected online payment fraud ring.",
-    },
-    {
-      caseNumber: "CASE-2026-0143",
-      title: "Cyber Extortion Complaint",
-      description: "DEMO/SYNTHETIC: Ransom demand following data breach claim.",
-    },
-    {
-      caseNumber: "CASE-2026-0144",
-      title: "Corporate Document Forgery",
-      description: "DEMO/SYNTHETIC: Alleged forged signatures on contracts.",
-    },
-    {
-      caseNumber: "CASE-2026-0145",
-      title: "Identity Theft Ring",
-      description: "DEMO/SYNTHETIC: Multiple victims of synthetic identity fraud.",
-    },
+    { caseNumber: "CASE-2026-0142", title: "Digital Fraud Investigation", description: "DEMO/SYNTHETIC: Suspected online payment fraud ring." },
+    { caseNumber: "CASE-2026-0143", title: "Cyber Extortion Complaint", description: "DEMO/SYNTHETIC: Ransom demand following data breach claim." },
+    { caseNumber: "CASE-2026-0144", title: "Corporate Document Forgery", description: "DEMO/SYNTHETIC: Alleged forged signatures on contracts." },
+    { caseNumber: "CASE-2026-0145", title: "Identity Theft Ring", description: "DEMO/SYNTHETIC: Multiple victims of synthetic identity fraud." },
   ];
 
   const cases = [];
   for (const c of caseData) {
-    const created = await prisma.case.upsert({
-      where: { caseNumber: c.caseNumber },
-      update: {},
-      create: { ...c, isSynthetic: true },
-    });
-    cases.push(created);
+    cases.push(
+      await prisma.case.upsert({
+        where: { caseNumber: c.caseNumber },
+        update: {},
+        create: { ...c, isSynthetic: true },
+      })
+    );
   }
 
-  // Assign officer/senior/forensic/legal to the first two cases so their
-  // dashboards have something real to show in Phase 1.
+  // Officer, Senior and Legal are members of the first two cases.
+  // Cases 0144 / 0145 have no members on purpose: they are the "unauthorized" cases.
   const memberAssignments: Array<{ userId: string; roleInCase: string }> = [
     { userId: officer.id, roleInCase: "LEAD_INVESTIGATOR" },
     { userId: senior.id, roleInCase: "SUPERVISOR" },
     { userId: legal.id, roleInCase: "LEGAL_REVIEWER" },
   ];
-
   for (const c of cases.slice(0, 2)) {
     for (const m of memberAssignments) {
       await prisma.caseMember.upsert({
@@ -75,21 +60,120 @@ async function main() {
     }
   }
 
-  // A sample evidence item assigned to the forensic officer.
-  const evidence = await prisma.evidenceItem.findFirst({
-    where: { caseId: cases[0].id, name: "Seized Laptop - Exhibit A" },
-  });
-  if (!evidence) {
-    await prisma.evidenceItem.create({
+  // ---------- Documents ----------
+  // Two are RESTRICTED / CONFIDENTIAL and were uploaded by someone other than
+  // the Investigating Officer. The officer can see they exist (metadata) but
+  // opening them returns 403 until a Senior Officer approves an access request.
+  type SampleDoc = {
+    caseIndex: number;
+    name: string;
+    type: string;
+    classification?: Classification;
+    uploader?: { id: string };
+  };
+  const sampleDocs: SampleDoc[] = [
+    { caseIndex: 0, name: "Initial Complaint Report.txt", type: "Report" },
+    { caseIndex: 0, name: "Suspect Bank Statement.txt", type: "Financial Record" },
+    { caseIndex: 1, name: "Ransom Email Screenshot Log.txt", type: "Evidence Log" },
+    { caseIndex: 0, name: "Confidential Informant Statement.txt", type: "Statement", classification: "RESTRICTED", uploader: senior },
+    { caseIndex: 1, name: "Sealed Negotiation Transcript.txt", type: "Transcript", classification: "CONFIDENTIAL", uploader: legal },
+  ];
+
+  for (const d of sampleDocs) {
+    const theCase = cases[d.caseIndex];
+    const uploader = d.uploader ?? officer;
+    const existing = await prisma.document.findFirst({ where: { caseId: theCase.id, name: d.name } });
+    if (existing) continue;
+
+    const content = Buffer.from(
+      `DEMO / SYNTHETIC DOCUMENT\nCase: ${theCase.caseNumber} - ${theCase.title}\nDocument: ${d.name}\nGenerated by seed script for SIH26190 prototype.\n`
+    );
+    const storageKey = saveFile(content, d.name);
+
+    await prisma.document.create({
       data: {
-        caseId: cases[0].id,
-        name: "Seized Laptop - Exhibit A",
-        description: "DEMO/SYNTHETIC: Laptop seized from suspect's residence.",
-        status: "IN_ANALYSIS",
-        currentCustodianId: forensic.id,
+        caseId: theCase.id,
+        name: d.name,
+        type: d.type,
+        classification: d.classification ?? "INTERNAL",
+        uploadedById: uploader.id,
+        latestVersionNo: 1,
+        integrityStatus: "VERIFIED",
+        versions: {
+          create: {
+            versionNo: 1,
+            storageKey,
+            originalName: d.name,
+            mimeType: "text/plain",
+            sizeBytes: content.length,
+            sha256: sha256Buffer(content),
+            createdById: uploader.id,
+          },
+        },
       },
     });
   }
+
+  // ---------- Evidence with a real chain of custody ----------
+  async function ensureEvidence(p: {
+    caseId: string;
+    name: string;
+    description: string;
+    status: EvidenceStatus;
+    custodianId: string;
+    history: Array<{ fromUserId: string | null; toUserId: string; notes: string }>;
+  }) {
+    let item = await prisma.evidenceItem.findFirst({ where: { caseId: p.caseId, name: p.name } });
+    if (!item) {
+      item = await prisma.evidenceItem.create({
+        data: {
+          caseId: p.caseId,
+          name: p.name,
+          description: p.description,
+          status: p.status,
+          currentCustodianId: p.custodianId,
+        },
+      });
+    }
+    const existingTransfers = await prisma.evidenceTransfer.count({ where: { evidenceId: item.id } });
+    if (existingTransfers === 0) {
+      const step = 5 * 60 * 60 * 1000;
+      let at = Date.now() - p.history.length * step;
+      for (const h of p.history) {
+        await prisma.evidenceTransfer.create({
+          data: {
+            evidenceId: item.id,
+            fromUserId: h.fromUserId,
+            toUserId: h.toUserId,
+            notes: h.notes,
+            transferredAt: new Date(at),
+          },
+        });
+        at += step;
+      }
+    }
+  }
+
+  await ensureEvidence({
+    caseId: cases[0].id,
+    name: "Seized Laptop - Exhibit A",
+    description: "DEMO/SYNTHETIC: Laptop seized from suspect's residence.",
+    status: "IN_ANALYSIS",
+    custodianId: forensic.id,
+    history: [
+      { fromUserId: null, toUserId: officer.id, notes: "Seized at suspect residence (demo)" },
+      { fromUserId: officer.id, toUserId: forensic.id, notes: "Handed over for forensic imaging" },
+    ],
+  });
+
+  await ensureEvidence({
+    caseId: cases[0].id,
+    name: "USB Drive - Exhibit B",
+    description: "DEMO/SYNTHETIC: USB drive recovered from suspect's desk.",
+    status: "COLLECTED",
+    custodianId: officer.id,
+    history: [{ fromUserId: null, toUserId: officer.id, notes: "Recovered from desk drawer (demo)" }],
+  });
 
   console.log("Seed complete.");
   console.log("Demo login password for all accounts:", DEMO_PASSWORD);

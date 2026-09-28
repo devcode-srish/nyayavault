@@ -7,6 +7,13 @@ import rateLimit from "express-rate-limit";
 import authRoutes from "./routes/auth.routes";
 import dashboardRoutes from "./routes/dashboard.routes";
 import usersRoutes from "./routes/users.routes";
+import casesRoutes from "./routes/cases.routes";
+import documentsRoutes from "./routes/documents.routes";
+import auditRoutes from "./routes/audit.routes";
+import accessRequestsRoutes from "./routes/accessRequests.routes";
+import notificationsRoutes from "./routes/notifications.routes";
+import evidenceRoutes from "./routes/evidence.routes";
+import shareRoutes from "./routes/share.routes";
 
 const app = express();
 
@@ -37,6 +44,15 @@ const authLimiter = rateLimit({
   message: { error: "Too many auth attempts, please try again later." },
 });
 
+// Public share links get their own, tighter limit (they need no login).
+const shareLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  limit: 60,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: "Too many requests, please try again later." },
+});
+
 app.get("/api/health", (_req, res) => {
   res.json({ ok: true, service: "nyayavault-api", time: new Date().toISOString() });
 });
@@ -44,6 +60,13 @@ app.get("/api/health", (_req, res) => {
 app.use("/api/auth", authLimiter, authRoutes);
 app.use("/api/dashboard", dashboardRoutes);
 app.use("/api/users", usersRoutes);
+app.use("/api/cases", casesRoutes);
+app.use("/api/documents", documentsRoutes);
+app.use("/api/audit", auditRoutes);
+app.use("/api/access-requests", accessRequestsRoutes);
+app.use("/api/notifications", notificationsRoutes);
+app.use("/api/evidence", evidenceRoutes);
+app.use("/api/share", shareLimiter, shareRoutes);
 
 // Central error handler
 app.use((err: unknown, _req: express.Request, res: express.Response, _next: express.NextFunction) => {

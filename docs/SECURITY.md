@@ -37,3 +37,38 @@ NyayaVault, at any phase, does **not** claim to be:
 - integrated with any real government, police, or NCRP system
 
 All data seeded or created during demos is synthetic. See `docs/DEMO.md`.
+
+## Added in Phase 3
+
+- **Document-level access control.** Restricted and confidential documents
+  need an explicit, expiring grant (created when a Senior Officer or Admin
+  approves an access request), or the caller must be the uploader, a Senior
+  Officer on the case, or an Admin. Checked on the server for every read,
+  download, version upload, integrity check and share.
+- **No metadata in 403s.** The "access denied" response for a document
+  contains nothing about the document.
+- **Approval rules.** You cannot approve your own request; a Senior Officer
+  can only decide for cases they belong to; concurrent decisions are
+  resolved atomically so only one wins.
+- **Secure share links.** 256-bit random token, expiry, download limit,
+  atomic use-counting, separate rate limit. The link reveals no storage path
+  or document ID. The file is re-hashed before each download and blocked on
+  mismatch. Restricted material can only be shared by a Senior Officer or
+  Admin.
+- **Storage keys never leave the server.** Version records returned to the
+  browser have the internal storage key removed.
+- **Chain of custody.** Document custody comes from the audit trail;
+  evidence has explicit transfer records, and only the current custodian
+  (or an Admin) can hand an item over.
+
+### Known limitations (prototype)
+
+- A share link serves the *latest* version of the document at download time,
+  not the version that existed when the link was created.
+- Requesting a document ID that doesn't exist returns 404 while a real but
+  forbidden one returns 403, which lets a signed-in user probe whether an ID
+  exists. Acceptable for a prototype; a hardened build would return the same
+  response for both.
+- Denied access attempts are not yet written to the audit log (no audit
+  action exists for it yet).
+- Share links cannot yet be revoked early; they expire or run out.

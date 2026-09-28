@@ -1,5 +1,5 @@
-import React from "react";
-import { NavLink, Outlet } from "react-router-dom";
+import React, { useEffect, useState } from "react";
+import { NavLink, Outlet, useLocation } from "react-router-dom";
 import {
   ShieldCheck,
   LayoutDashboard,
@@ -17,6 +17,7 @@ import {
   LogOut,
 } from "lucide-react";
 import { useAuth, Role } from "../context/AuthContext";
+import { api } from "../lib/api";
 
 interface NavItem {
   to: string;
@@ -25,27 +26,49 @@ interface NavItem {
   roles: Role[];
 }
 
-// This list is the ONLY thing that differs per role on the frontend — a
-// convenience so unauthorized modules don't even appear in navigation.
-// It is NOT the security boundary: every one of these routes calls an API
-// that separately enforces RBAC server-side (see apps/api/src/middleware/auth.ts).
+const ALL: Role[] = ["ADMIN", "INVESTIGATING_OFFICER", "SENIOR_OFFICER", "FORENSIC_OFFICER", "LEGAL_OFFICER"];
+
+// This list only decides which links are SHOWN. It is a convenience, not the
+// security boundary: every page calls an API that enforces RBAC on the server.
 const NAV_ITEMS: NavItem[] = [
-  { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard, roles: ["ADMIN", "INVESTIGATING_OFFICER", "SENIOR_OFFICER", "FORENSIC_OFFICER", "LEGAL_OFFICER"] },
+  { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard, roles: ALL },
   { to: "/cases", label: "Cases", icon: FolderKanban, roles: ["ADMIN", "INVESTIGATING_OFFICER", "SENIOR_OFFICER", "LEGAL_OFFICER"] },
   { to: "/documents", label: "Documents", icon: FileText, roles: ["ADMIN", "INVESTIGATING_OFFICER", "SENIOR_OFFICER", "LEGAL_OFFICER"] },
-  { to: "/evidence", label: "Evidence", icon: Fingerprint, roles: ["ADMIN", "FORENSIC_OFFICER"] },
+  { to: "/evidence", label: "Evidence", icon: Fingerprint, roles: ["ADMIN", "INVESTIGATING_OFFICER", "SENIOR_OFFICER", "FORENSIC_OFFICER"] },
   { to: "/ai", label: "AI Assistant", icon: BrainCircuit, roles: ["INVESTIGATING_OFFICER", "SENIOR_OFFICER"] },
   { to: "/audit", label: "Audit Log", icon: ScrollText, roles: ["ADMIN", "SENIOR_OFFICER"] },
-  { to: "/access-requests", label: "Access Requests", icon: KeyRound, roles: ["ADMIN", "INVESTIGATING_OFFICER", "SENIOR_OFFICER"] },
+  { to: "/access-requests", label: "Access Requests", icon: KeyRound, roles: ["ADMIN", "INVESTIGATING_OFFICER", "SENIOR_OFFICER", "LEGAL_OFFICER"] },
   { to: "/signatures", label: "Signatures", icon: PenTool, roles: ["SENIOR_OFFICER", "LEGAL_OFFICER"] },
-  { to: "/notifications", label: "Notifications", icon: Bell, roles: ["ADMIN", "INVESTIGATING_OFFICER", "SENIOR_OFFICER", "FORENSIC_OFFICER", "LEGAL_OFFICER"] },
+  { to: "/notifications", label: "Notifications", icon: Bell, roles: ALL },
   { to: "/users", label: "Users", icon: Users, roles: ["ADMIN"] },
   { to: "/security", label: "Security", icon: ShieldAlert, roles: ["ADMIN"] },
-  { to: "/settings", label: "Settings", icon: Settings, roles: ["ADMIN", "INVESTIGATING_OFFICER", "SENIOR_OFFICER", "FORENSIC_OFFICER", "LEGAL_OFFICER"] },
+  { to: "/settings", label: "Settings", icon: Settings, roles: ALL },
 ];
 
 export default function Layout() {
   const { user, logout } = useAuth();
+  const location = useLocation();
+  const [unread, setUnread] = useState(0);
+
+  // Refresh the unread badge on every navigation and every 30 seconds.
+  useEffect(() => {
+    if (!user) return;
+    let cancelled = false;
+    const fetchCount = () =>
+      api
+        .get("/notifications/unread-count")
+        .then(({ data }) => {
+          if (!cancelled) setUnread(data.count);
+        })
+        .catch(() => {});
+    fetchCount();
+    const timer = setInterval(fetchCount, 30000);
+    return () => {
+      cancelled = true;
+      clearInterval(timer);
+    };
+  }, [user?.id, location.pathname]);
+
   if (!user) return null;
 
   const items = NAV_ITEMS.filter((item) => item.roles.includes(user.role));
@@ -71,7 +94,10 @@ export default function Layout() {
               }
             >
               <item.icon size={16} />
-              {item.label}
+              <span className="flex-1">{item.label}</span>
+              {item.to === "/notifications" && unread > 0 && (
+                <span className="text-[10px] bg-vault-500 text-white rounded-full px-1.5 py-0.5">{unread}</span>
+              )}
             </NavLink>
           ))}
         </nav>

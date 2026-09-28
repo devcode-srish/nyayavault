@@ -1,6 +1,6 @@
 import React from "react";
 
-export function PageHeader({ title, subtitle }: { title: string; subtitle?: string }) {
+export function PageHeader({ title, subtitle }: { title: string; subtitle?: React.ReactNode }) {
   return (
     <div className="px-8 pt-8 pb-4 border-b border-vault-800">
       <h1 className="text-xl font-semibold text-white">{title}</h1>

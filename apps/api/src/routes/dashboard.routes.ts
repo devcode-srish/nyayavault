@@ -6,25 +6,42 @@ const router = Router();
 
 /**
  * GET /api/dashboard
- * Returns a genuinely different payload per role — not just a relabeled
- * version of the same data. Each branch only queries what that role is
- * meant to see; this is separate from (and in addition to) any
- * document/case-level authorization enforced in later phases.
+ * Each role gets a genuinely different payload; each branch only queries
+ * what that role is meant to see.
  */
 router.get("/", requireAuth, async (req, res) => {
   const { sub: userId, role } = req.user!;
 
+  const myRequests = async () => {
+    const rows = await prisma.accessRequest.findMany({
+      where: { requestedById: userId },
+      orderBy: { createdAt: "desc" },
+      take: 5,
+      include: { document: { select: { id: true, name: true } } },
+    });
+    const now = new Date();
+    return rows.map((r) => ({
+      ...r,
+      status: r.status === "APPROVED" && r.expiresAt && r.expiresAt < now ? "EXPIRED" : r.status,
+    }));
+  };
+
   switch (role) {
     case "ADMIN": {
-      const [userCount, activeCases, pendingApprovals, recentAudit] = await Promise.all([
+      const [userCount, activeCases, pendingApprovals, integrityAlerts, recentAudit] = await Promise.all([
         prisma.user.count(),
         prisma.case.count({ where: { status: { in: ["OPEN", "UNDER_REVIEW"] } } }),
         prisma.accessRequest.count({ where: { status: "PENDING" } }),
-        prisma.auditLog.findMany({ orderBy: { createdAt: "desc" }, take: 10 }),
+        prisma.document.count({ where: { integrityStatus: "MISMATCH" } }),
+        prisma.auditLog.findMany({
+          orderBy: { createdAt: "desc" },
+          take: 10,
+          include: { actor: { select: { name: true } } },
+        }),
       ]);
       return res.json({
         role,
-        widgets: { userCount, activeCases, pendingApprovals },
+        widgets: { userCount, activeCases, pendingApprovals, integrityAlerts },
         recentAudit,
       });
     }
@@ -38,9 +55,12 @@ router.get("/", requireAuth, async (req, res) => {
       const recentDocuments = await prisma.document.findMany({
         where: { caseId: { in: assignedCases.map((c) => c.id) } },
         orderBy: { updatedAt: "desc" },
-        take: 10,
+        take: 8,
       });
-      return res.json({ role, widgets: { assignedCases, recentDocuments } });
+      return res.json({
+        role,
+        widgets: { assignedCases, recentDocuments, myAccessRequests: await myRequests() },
+      });
     }
 
     case "SENIOR_OFFICER": {
@@ -48,20 +68,34 @@ router.get("/", requireAuth, async (req, res) => {
         where: { userId },
         include: { case: true },
       });
-      const pendingApprovals = await prisma.accessRequest.findMany({
-        where: { status: "PENDING" },
-        include: { document: true, requestedBy: true },
-        take: 20,
-      });
+      const caseIds = memberships.map((m) => m.caseId);
+      const [pendingApprovals, integrityAlerts] = await Promise.all([
+        prisma.accessRequest.findMany({
+          where: { status: "PENDING", requestedById: { not: userId }, document: { caseId: { in: caseIds } } },
+          orderBy: { createdAt: "desc" },
+          include: {
+            document: { select: { id: true, name: true, classification: true } },
+            requestedBy: { select: { name: true } },
+          },
+          take: 20,
+        }),
+        prisma.document.count({ where: { caseId: { in: caseIds }, integrityStatus: "MISMATCH" } }),
+      ]);
       return res.json({
         role,
-        widgets: { supervisedCases: memberships.map((m) => m.case), pendingApprovals },
+        widgets: {
+          supervisedCases: memberships.map((m) => m.case),
+          pendingApprovals,
+          integrityAlerts,
+        },
       });
     }
 
     case "FORENSIC_OFFICER": {
       const evidence = await prisma.evidenceItem.findMany({
         where: { currentCustodianId: userId },
+        orderBy: { updatedAt: "desc" },
+        include: { case: { select: { caseNumber: true } } },
         take: 20,
       });
       return res.json({ role, widgets: { assignedEvidence: evidence } });
@@ -72,7 +106,10 @@ router.get("/", requireAuth, async (req, res) => {
         where: { userId },
         include: { case: true },
       });
-      return res.json({ role, widgets: { assignedCases: memberships.map((m) => m.case) } });
+      return res.json({
+        role,
+        widgets: { assignedCases: memberships.map((m) => m.case), myAccessRequests: await myRequests() },
+      });
     }
 
     default:
