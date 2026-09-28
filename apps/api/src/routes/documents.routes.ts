@@ -310,7 +310,7 @@ router.get("/:id/download", requireAuth, async (req, res) => {
 
   const document = await prisma.document.findUnique({ where: { id } });
   if (!document) return res.status(404).json({ error: "Document not found" });
-  if (!(await userCanAccessDocument(userId, role, document))) {
+  if (!(await userCanAccessDocument(userId, role, document, "DOWNLOAD"))) {
     return denyDocument(res, userId, id);
   }
 
@@ -406,7 +406,7 @@ router.post("/:id/share", requireAuth, requireRole(...UPLOAD_ROLES), async (req,
 
   const document = await prisma.document.findUnique({ where: { id } });
   if (!document) return res.status(404).json({ error: "Document not found" });
-  if (!(await userCanAccessDocument(userId, role, document))) {
+  if (!(await userCanAccessDocument(userId, role, document, "SHARE"))) {
     return denyDocument(res, userId, id);
   }
 

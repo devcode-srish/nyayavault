@@ -1,4 +1,4 @@
-import { Classification } from "@prisma/client";
+import { Classification, AccessScope } from "@prisma/client";
 import { prisma } from "./prisma";
 
 /**
@@ -8,9 +8,9 @@ import { prisma } from "./prisma";
  *  2. Case membership (this file)          - are you assigned to the case?
  *  3. Document access (this file)          - for RESTRICTED / CONFIDENTIAL
  *     documents, case membership alone is NOT enough. You need an active
- *     DocumentAccess grant (created when a Senior Officer / Admin approves
- *     an access request), or you must be the uploader, a Senior Officer on
- *     the case, or an Admin.
+ *     DocumentAccess grant with the required AccessScope (created when a
+ *     Senior Officer / Admin approves an access request), or you must be
+ *     the uploader, a Senior Officer on the case, or an Admin.
  */
 
 export async function userCanAccessCase(
@@ -48,16 +48,25 @@ export interface DocumentAccessSubject {
 export async function userCanAccessDocument(
   userId: string,
   role: string,
-  doc: DocumentAccessSubject
+  doc: DocumentAccessSubject,
+  requiredScope: AccessScope = "VIEW_METADATA"
 ): Promise<boolean> {
   if (role === "ADMIN") return true;
 
   // A temporary grant (from an approved access request) works even if the
-  // person is not a member of the case. Expired grants are ignored.
+  // person is not a member of the case. Expired or revoked grants are ignored.
+  const now = new Date();
   const grant = await prisma.documentAccess.findFirst({
-    where: { documentId: doc.id, userId, isActive: true },
+    where: {
+      documentId: doc.id,
+      userId,
+      isActive: true,
+      OR: [{ expiresAt: null }, { expiresAt: { gt: now } }],
+    },
   });
-  if (grant && (!grant.expiresAt || grant.expiresAt > new Date())) return true;
+  if (grant) {
+    return grant.scopes.includes(requiredScope);
+  }
 
   const membership = await prisma.caseMember.findUnique({
     where: { caseId_userId: { caseId: doc.caseId, userId } },
@@ -66,6 +75,15 @@ export async function userCanAccessDocument(
 
   if (!isRestricted(doc.classification)) return true;
   return doc.uploadedById === userId || role === "SENIOR_OFFICER";
+}
+
+export async function userHasDocumentScope(
+  userId: string,
+  role: string,
+  doc: DocumentAccessSubject,
+  scope: AccessScope
+): Promise<boolean> {
+  return userCanAccessDocument(userId, role, doc, scope);
 }
 
 /**
@@ -82,12 +100,14 @@ export async function annotateDocumentAccess<T extends DocumentAccessSubject>(
   const now = new Date();
   const [grants, memberships] = await Promise.all([
     prisma.documentAccess.findMany({
-      where: { userId, documentId: { in: docs.map((d) => d.id) } },
+      where: { userId, documentId: { in: docs.map((d) => d.id) }, isActive: true },
     }),
     prisma.caseMember.findMany({ where: { userId }, select: { caseId: true } }),
   ]);
   const activeGrants = new Set(
-    grants.filter((g) => !g.expiresAt || g.expiresAt > now).map((g) => g.documentId)
+    grants
+      .filter((g) => (!g.expiresAt || g.expiresAt > now) && g.scopes.includes("VIEW_METADATA"))
+      .map((g) => g.documentId)
   );
   const memberCases = new Set(memberships.map((m) => m.caseId));
 
