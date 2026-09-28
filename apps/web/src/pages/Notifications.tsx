@@ -47,11 +47,11 @@ export default function Notifications() {
     <div>
       <PageHeader title="Notifications" subtitle={unread > 0 ? `${unread} unread` : "All caught up"} />
       <div className="p-8 max-w-3xl">
-        {loading && <p className="text-vault-400 text-sm">Loading...</p>}
+        {loading && <p className="text-slate-500 dark:text-vault-400 text-sm">Loading...</p>}
         {error && <p className="text-red-400 text-sm">{error}</p>}
         {!loading && items.length === 0 && <EmptyState text="No notifications yet." />}
         {unread > 0 && (
-          <button onClick={markAllRead} className="text-xs text-vault-300 hover:text-white hover:underline mb-3">
+          <button onClick={markAllRead} className="text-xs text-slate-600 dark:text-vault-300 hover:text-white hover:underline mb-3">
             Mark all as read
           </button>
         )}
@@ -61,25 +61,25 @@ export default function Notifications() {
               key={n.id}
               onClick={() => !n.isRead && markRead(n.id)}
               className={`rounded-xl border p-4 cursor-pointer ${
-                n.isRead ? "bg-vault-900/50 border-vault-800" : "bg-vault-900 border-vault-600"
+                n.isRead ? "bg-white dark:bg-vault-900/50 border-slate-200 dark:border-vault-800" : "bg-white dark:bg-vault-900 border-slate-400 dark:border-vault-600"
               }`}
             >
               <div className="flex items-start justify-between gap-3">
                 <div>
-                  <p className={`text-sm ${n.isRead ? "text-vault-300" : "text-white font-medium"}`}>{n.title}</p>
-                  <p className="text-sm text-vault-400 mt-0.5">{n.message}</p>
+                  <p className={`text-sm ${n.isRead ? "text-slate-600 dark:text-vault-300" : "text-white font-medium"}`}>{n.title}</p>
+                  <p className="text-sm text-slate-500 dark:text-vault-400 mt-0.5">{n.message}</p>
                   {n.type === "ACCESS_REQUEST" && (
-                    <Link to="/access-requests" className="text-xs text-vault-300 hover:text-white hover:underline mt-1 inline-block">
+                    <Link to="/access-requests" className="text-xs text-slate-600 dark:text-vault-300 hover:text-white hover:underline mt-1 inline-block">
                       Review requests
                     </Link>
                   )}
                   {(n.type === "ACCESS_APPROVED" || n.type === "ACCESS_REJECTED") && (
-                    <Link to="/access-requests" className="text-xs text-vault-300 hover:text-white hover:underline mt-1 inline-block">
+                    <Link to="/access-requests" className="text-xs text-slate-600 dark:text-vault-300 hover:text-white hover:underline mt-1 inline-block">
                       View my requests
                     </Link>
                   )}
                 </div>
-                <span className="text-xs text-vault-500 whitespace-nowrap">
+                <span className="text-xs text-slate-500 dark:text-vault-500 whitespace-nowrap">
                   {new Date(n.createdAt).toLocaleString()}
                 </span>
               </div>

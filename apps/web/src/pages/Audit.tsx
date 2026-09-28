@@ -38,7 +38,7 @@ export default function Audit() {
           <select
             value={action}
             onChange={(e) => setAction(e.target.value)}
-            className="rounded-lg bg-vault-950 border border-vault-700 px-3 py-2 text-sm text-white"
+            className="rounded-lg bg-white dark:bg-vault-950 border border-slate-300 dark:border-vault-700 px-3 py-2 text-sm text-slate-900 dark:text-white"
           >
             {ACTIONS.map((a) => (
               <option key={a} value={a}>{a ? a.replace(/_/g, " ") : "All actions"}</option>
@@ -46,13 +46,13 @@ export default function Audit() {
           </select>
         </div>
 
-        {loading && <p className="text-vault-400 text-sm">Loading...</p>}
+        {loading && <p className="text-slate-500 dark:text-vault-400 text-sm">Loading...</p>}
         {error && <p className="text-red-400 text-sm">{error}</p>}
         {!loading && logs.length === 0 && <EmptyState text="No matching audit events." />}
         {logs.length > 0 && (
-          <div className="bg-vault-900 border border-vault-800 rounded-xl overflow-hidden">
+          <div className="bg-white dark:bg-vault-900 border border-slate-200 dark:border-vault-800 rounded-xl overflow-hidden">
             <table className="w-full text-sm">
-              <thead className="bg-vault-800/50 text-vault-400 text-xs uppercase">
+              <thead className="bg-slate-50 dark:bg-vault-800/50 text-slate-500 dark:text-vault-400 text-xs uppercase">
                 <tr>
                   <th className="text-left px-4 py-2">Action</th>
                   <th className="text-left px-4 py-2">Actor</th>
@@ -61,7 +61,7 @@ export default function Audit() {
                   <th className="text-left px-4 py-2">Time</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-vault-800">
+              <tbody className="divide-y divide-slate-100 dark:divide-vault-800">
                 {logs.map((l) => (
                   <tr key={l.id}>
                     <td className="px-4 py-2">
@@ -70,10 +70,10 @@ export default function Audit() {
                         tone={l.action === "INTEGRITY_MISMATCH" ? "danger" : "neutral"}
                       />
                     </td>
-                    <td className="px-4 py-2 text-vault-300">{l.actor?.name || "—"}</td>
-                    <td className="px-4 py-2 text-vault-400">{l.document?.name || "—"}</td>
-                    <td className="px-4 py-2 text-vault-500 text-xs">{l.notes || "—"}</td>
-                    <td className="px-4 py-2 text-vault-500 text-xs">{new Date(l.createdAt).toLocaleString()}</td>
+                    <td className="px-4 py-2 text-slate-600 dark:text-vault-300">{l.actor?.name || "—"}</td>
+                    <td className="px-4 py-2 text-slate-500 dark:text-vault-400">{l.document?.name || "—"}</td>
+                    <td className="px-4 py-2 text-slate-500 dark:text-vault-500 text-xs">{l.notes || "—"}</td>
+                    <td className="px-4 py-2 text-slate-500 dark:text-vault-500 text-xs">{new Date(l.createdAt).toLocaleString()}</td>
                   </tr>
                 ))}
               </tbody>

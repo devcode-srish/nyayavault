@@ -55,7 +55,7 @@ export default function EvidenceDetail() {
     }
   }
 
-  if (loading) return <div className="p-8 text-vault-400 text-sm">Loading...</div>;
+  if (loading) return <div className="p-8 text-slate-500 dark:text-vault-400 text-sm">Loading...</div>;
   if (error) return <div className="p-8 text-red-400 text-sm">{error}</div>;
   if (!ev) return null;
 
@@ -84,16 +84,16 @@ export default function EvidenceDetail() {
         <div className="grid grid-cols-3 gap-4">
           <Card title="Status"><Badge text={ev.status.replace(/_/g, " ")} /></Card>
           <Card title="Current custodian">
-            <span className="text-sm text-vault-200">{ev.currentCustodian?.name ?? "\u2014"}</span>
+            <span className="text-sm text-slate-700 dark:text-vault-200">{ev.currentCustodian?.name ?? "\u2014"}</span>
           </Card>
           <Card title="Custody events">
-            <span className="text-sm text-vault-200">{ev.transfers.length}</span>
+            <span className="text-sm text-slate-700 dark:text-vault-200">{ev.transfers.length}</span>
           </Card>
         </div>
 
         {ev.description && (
           <Card title="Description">
-            <p className="text-sm text-vault-300">{ev.description}</p>
+            <p className="text-sm text-slate-600 dark:text-vault-300">{ev.description}</p>
           </Card>
         )}
 
@@ -105,11 +105,11 @@ export default function EvidenceDetail() {
           <Card title="Transfer Custody">
             <form onSubmit={transfer} className="space-y-3">
               <div>
-                <label className="block text-xs text-vault-400 mb-1">Transfer to</label>
+                <label className="block text-xs text-slate-500 dark:text-vault-400 mb-1">Transfer to</label>
                 <select
                   value={toUserId}
                   onChange={(e) => setToUserId(e.target.value)}
-                  className="w-full rounded-lg bg-vault-950 border border-vault-700 px-3 py-2 text-sm text-white"
+                  className="w-full rounded-lg bg-white dark:bg-vault-950 border border-slate-300 dark:border-vault-700 px-3 py-2 text-sm text-slate-900 dark:text-white"
                 >
                   <option value="">Select a person...</option>
                   {people.map((p) => (
@@ -120,12 +120,12 @@ export default function EvidenceDetail() {
                 </select>
               </div>
               <div>
-                <label className="block text-xs text-vault-400 mb-1">Notes (optional)</label>
+                <label className="block text-xs text-slate-500 dark:text-vault-400 mb-1">Notes (optional)</label>
                 <input
                   value={notes}
                   onChange={(e) => setNotes(e.target.value)}
                   maxLength={300}
-                  className="w-full rounded-lg bg-vault-950 border border-vault-700 px-3 py-2 text-sm text-white"
+                  className="w-full rounded-lg bg-white dark:bg-vault-950 border border-slate-300 dark:border-vault-700 px-3 py-2 text-sm text-slate-900 dark:text-white"
                   placeholder="e.g. Handed over for forensic imaging"
                 />
               </div>
@@ -133,7 +133,7 @@ export default function EvidenceDetail() {
               <button
                 type="submit"
                 disabled={!toUserId || busy}
-                className="rounded-lg bg-vault-500 hover:bg-vault-400 transition text-white text-sm font-medium px-4 py-2 disabled:opacity-50"
+                className="rounded-lg bg-blue-600 dark:bg-vault-500 hover:bg-blue-700 dark:hover:bg-vault-400 transition text-white text-sm font-medium px-4 py-2 disabled:opacity-50"
               >
                 {busy ? "Transferring..." : "Transfer custody"}
               </button>

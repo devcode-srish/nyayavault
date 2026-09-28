@@ -45,7 +45,7 @@ async function findLink(token: string) {
 // Metadata only. Viewing this page does not use up a download.
 router.get("/:token", async (req, res) => {
   const found = await findLink(req.params.token);
-  if ("error" in found) return res.status(found.status).json({ error: found.error });
+  if ("error" in found) return res.status(found.status as number).json({ error: found.error });
   const { link, version } = found;
 
   return res.json({
@@ -67,7 +67,7 @@ router.get("/:token", async (req, res) => {
 
 router.get("/:token/download", async (req, res) => {
   const found = await findLink(req.params.token);
-  if ("error" in found) return res.status(found.status).json({ error: found.error });
+  if ("error" in found) return res.status(found.status as number).json({ error: found.error });
   const { link, version } = found;
 
   let buffer: Buffer;

@@ -25,7 +25,7 @@ export default function AIAnalysisPanel({ documentId }: { documentId: string }) 
     <Card title="Intelligent Analysis">
       {!result && !analyzing && !error && (
         <div className="flex flex-col items-center justify-center p-6 text-center">
-          <p className="text-sm text-vault-300 mb-4">
+          <p className="text-sm text-slate-500 dark:text-vault-300 mb-4">
             Run an AI analysis to automatically extract entities and generate a summary of this document.
           </p>
           <button
@@ -38,36 +38,53 @@ export default function AIAnalysisPanel({ documentId }: { documentId: string }) 
       )}
 
       {analyzing && (
-        <div className="flex flex-col items-center justify-center p-8 space-y-4">
-          <div className="w-8 h-8 border-4 border-indigo-500/30 border-t-indigo-500 rounded-full animate-spin"></div>
-          <p className="text-sm text-indigo-300 animate-pulse">Analyzing document...</p>
+        <div className="space-y-6 mt-2 animate-pulse">
+          <div>
+            <div className="h-4 w-32 bg-slate-200 dark:bg-vault-800 rounded mb-4"></div>
+            <div className="space-y-2">
+              <div className="h-3 w-full bg-slate-100 dark:bg-vault-800/50 rounded"></div>
+              <div className="h-3 w-5/6 bg-slate-100 dark:bg-vault-800/50 rounded"></div>
+              <div className="h-3 w-4/6 bg-slate-100 dark:bg-vault-800/50 rounded"></div>
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+            {[1, 2, 3, 4].map(i => (
+              <div key={i} className="p-4 rounded-xl bg-slate-50 dark:bg-vault-950/50 border border-slate-100 dark:border-vault-800">
+                <div className="h-3 w-20 bg-slate-200 dark:bg-vault-800 rounded mb-4"></div>
+                <div className="flex gap-2">
+                  <div className="h-6 w-16 bg-indigo-100 dark:bg-indigo-900/40 rounded-md"></div>
+                  <div className="h-6 w-24 bg-indigo-100 dark:bg-indigo-900/40 rounded-md"></div>
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
       )}
 
       {error && (
-        <div className="mt-4 p-4 rounded-xl border border-red-900 bg-red-950/40">
-          <p className="text-sm text-red-300">{error}</p>
-          <button onClick={handleAnalyze} className="mt-3 text-xs text-red-200 hover:underline">Try Again</button>
+        <div className="mt-4 p-4 rounded-xl border border-red-200 bg-red-50 dark:border-red-900 dark:bg-red-950/40">
+          <p className="text-sm text-red-700 dark:text-red-300">{error}</p>
+          <button onClick={handleAnalyze} className="mt-3 text-xs text-red-600 dark:text-red-200 hover:underline">Try Again</button>
         </div>
       )}
 
       {result && (
         <div className="space-y-6 mt-2">
           {result.piiDetected && (
-            <div className="px-4 py-3 rounded-lg border border-orange-900 bg-orange-950/50 flex items-start shadow-inner">
-              <span className="text-orange-400 mr-3 text-lg">⚠️</span>
+            <div className="px-4 py-3 rounded-lg border border-orange-200 bg-orange-50 dark:border-orange-900 dark:bg-orange-950/50 flex items-start shadow-inner">
+              <span className="text-orange-500 dark:text-orange-400 mr-3 text-lg">⚠️</span>
               <div>
-                <h4 className="text-sm font-medium text-orange-300">Sensitive Information Detected</h4>
-                <p className="text-xs text-orange-200/80 mt-1">This document contains PII (e.g. Aadhaar, phone numbers, or minors). Handle with strict confidentiality.</p>
+                <h4 className="text-sm font-medium text-orange-800 dark:text-orange-300">Sensitive Information Detected</h4>
+                <p className="text-xs text-orange-600 dark:text-orange-200/80 mt-1">This document contains PII (e.g. Aadhaar, phone numbers, or minors). Handle with strict confidentiality.</p>
               </div>
             </div>
           )}
 
           <div>
-            <h4 className="text-sm font-semibold text-vault-200 mb-2 uppercase tracking-wider">Executive Summary</h4>
+            <h4 className="text-sm font-semibold text-slate-800 dark:text-vault-200 mb-2 uppercase tracking-wider">Executive Summary</h4>
             <ul className="list-disc pl-5 space-y-2">
               {result.summary.map((point: string, i: number) => (
-                <li key={i} className="text-sm text-vault-300">{point}</li>
+                <li key={i} className="text-sm text-slate-600 dark:text-vault-300">{point}</li>
               ))}
             </ul>
           </div>
@@ -76,11 +93,11 @@ export default function AIAnalysisPanel({ documentId }: { documentId: string }) 
             {Object.entries(result.entities).map(([key, items]: [string, any]) => {
               if (!items || items.length === 0) return null;
               return (
-                <div key={key} className="p-4 rounded-xl bg-vault-950/50 border border-vault-800 shadow-sm">
-                  <h4 className="text-xs font-semibold text-vault-400 mb-3 uppercase tracking-wider">{key}</h4>
+                <div key={key} className="p-4 rounded-xl bg-slate-50 border border-slate-200 dark:bg-vault-950/50 dark:border-vault-800 shadow-sm transition-all hover:shadow-md">
+                  <h4 className="text-xs font-semibold text-slate-500 dark:text-vault-400 mb-3 uppercase tracking-wider">{key}</h4>
                   <div className="flex flex-wrap gap-2">
                     {items.map((item: string, i: number) => (
-                      <span key={i} className="inline-flex items-center px-2.5 py-1 rounded-md text-xs font-medium bg-indigo-900/40 text-indigo-200 border border-indigo-800/50 shadow-sm">
+                      <span key={i} className="inline-flex items-center px-2.5 py-1 rounded-md text-xs font-medium bg-indigo-50 text-indigo-700 border border-indigo-100 dark:bg-indigo-900/40 dark:text-indigo-200 dark:border-indigo-800/50 shadow-sm transition-colors hover:bg-indigo-100 dark:hover:bg-indigo-900/60">
                         {item}
                       </span>
                     ))}

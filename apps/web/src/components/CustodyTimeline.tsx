@@ -38,7 +38,7 @@ export function auditTone(action: string): TimelineEvent["tone"] {
 }
 
 const DOT: Record<string, string> = {
-  neutral: "bg-vault-500 border-vault-400",
+  neutral: "bg-blue-600 dark:bg-vault-500 border-vault-400",
   good: "bg-emerald-500 border-emerald-300",
   danger: "bg-red-500 border-red-300",
   warn: "bg-amber-500 border-amber-300",
@@ -48,7 +48,7 @@ export default function CustodyTimeline({ events }: { events: TimelineEvent[] })
   if (events.length === 0) return <EmptyState text="No custody events recorded." />;
 
   return (
-    <ol className="relative border-l border-vault-700 ml-2 space-y-5">
+    <ol className="relative border-l border-slate-300 dark:border-vault-700 ml-2 space-y-5">
       {events.map((e) => (
         <li key={e.id} className="ml-5 relative">
           <span
@@ -57,12 +57,12 @@ export default function CustodyTimeline({ events }: { events: TimelineEvent[] })
           <div className="flex flex-wrap items-baseline justify-between gap-2">
             <p className="text-sm text-white">
               {e.title}
-              {e.detail && <span className="text-vault-300"> {e.detail}</span>}
+              {e.detail && <span className="text-slate-600 dark:text-vault-300"> {e.detail}</span>}
             </p>
-            <span className="text-xs text-vault-500">{new Date(e.at).toLocaleString()}</span>
+            <span className="text-xs text-slate-500 dark:text-vault-500">{new Date(e.at).toLocaleString()}</span>
           </div>
-          {e.actor && <p className="text-xs text-vault-400">by {e.actor}</p>}
-          {e.notes && <p className="text-xs text-vault-500 mt-0.5">{e.notes}</p>}
+          {e.actor && <p className="text-xs text-slate-500 dark:text-vault-400">by {e.actor}</p>}
+          {e.notes && <p className="text-xs text-slate-500 dark:text-vault-500 mt-0.5">{e.notes}</p>}
         </li>
       ))}
     </ol>

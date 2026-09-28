@@ -60,18 +60,18 @@ export default function SharePanel({ documentId }: { documentId: string }) {
 
   return (
     <Card title="Secure Share Link">
-      <p className="text-xs text-vault-500 mb-3">
+      <p className="text-xs text-slate-500 dark:text-vault-500 mb-3">
         Creates a link that expires and has a download limit. It contains only a random token &mdash; no
         file path or document ID. The file is re-hashed before every download and blocked if it no longer
         matches.
       </p>
       <form onSubmit={create} className="flex flex-wrap items-end gap-3">
         <div>
-          <label className="block text-xs text-vault-400 mb-1">Expires after</label>
+          <label className="block text-xs text-slate-500 dark:text-vault-400 mb-1">Expires after</label>
           <select
             value={expiresInHours}
             onChange={(e) => setExpiresInHours(Number(e.target.value))}
-            className="rounded-lg bg-vault-950 border border-vault-700 px-3 py-2 text-sm text-white"
+            className="rounded-lg bg-white dark:bg-vault-950 border border-slate-300 dark:border-vault-700 px-3 py-2 text-sm text-slate-900 dark:text-white"
           >
             {EXPIRY.map((o) => (
               <option key={o.value} value={o.value}>{o.label}</option>
@@ -79,11 +79,11 @@ export default function SharePanel({ documentId }: { documentId: string }) {
           </select>
         </div>
         <div>
-          <label className="block text-xs text-vault-400 mb-1">Max downloads</label>
+          <label className="block text-xs text-slate-500 dark:text-vault-400 mb-1">Max downloads</label>
           <select
             value={maxUses}
             onChange={(e) => setMaxUses(Number(e.target.value))}
-            className="rounded-lg bg-vault-950 border border-vault-700 px-3 py-2 text-sm text-white"
+            className="rounded-lg bg-white dark:bg-vault-950 border border-slate-300 dark:border-vault-700 px-3 py-2 text-sm text-slate-900 dark:text-white"
           >
             {USES.map((u) => (
               <option key={u} value={u}>{u}</option>
@@ -93,7 +93,7 @@ export default function SharePanel({ documentId }: { documentId: string }) {
         <button
           type="submit"
           disabled={busy}
-          className="rounded-lg bg-vault-700 hover:bg-vault-600 transition text-white text-sm font-medium px-4 py-2 disabled:opacity-50"
+          className="rounded-lg bg-slate-700 dark:bg-vault-700 hover:bg-vault-600 transition text-white text-sm font-medium px-4 py-2 disabled:opacity-50"
         >
           {busy ? "Creating..." : "Create link"}
         </button>
@@ -101,11 +101,11 @@ export default function SharePanel({ documentId }: { documentId: string }) {
       {error && <p className="text-red-400 text-sm mt-2">{error}</p>}
 
       {newUrl && (
-        <div className="mt-3 rounded-lg bg-vault-950 border border-vault-800 p-3">
-          <p className="text-xs text-vault-400 mb-1">New link (you can copy it again from the list below)</p>
-          <code className="text-xs text-vault-200 break-all">{newUrl}</code>
+        <div className="mt-3 rounded-lg bg-white dark:bg-vault-950 border border-slate-200 dark:border-vault-800 p-3">
+          <p className="text-xs text-slate-500 dark:text-vault-400 mb-1">New link (you can copy it again from the list below)</p>
+          <code className="text-xs text-slate-700 dark:text-vault-200 break-all">{newUrl}</code>
           <div className="mt-2">
-            <button onClick={() => newUrl && copyText(newUrl, () => setCopied(true))} className="text-xs text-vault-300 hover:text-white hover:underline">
+            <button onClick={() => newUrl && copyText(newUrl, () => setCopied(true))} className="text-xs text-slate-600 dark:text-vault-300 hover:text-white hover:underline">
               {copied ? "Copied" : "Copy"}
             </button>
           </div>
@@ -113,20 +113,20 @@ export default function SharePanel({ documentId }: { documentId: string }) {
       )}
 
       <div className="mt-4">
-        <p className="text-xs text-vault-400 mb-2">Existing links</p>
+        <p className="text-xs text-slate-500 dark:text-vault-400 mb-2">Existing links</p>
         {shares.length === 0 ? (
           <EmptyState text="No share links yet." />
         ) : (
-          <ul className="divide-y divide-vault-800">
+          <ul className="divide-y divide-slate-100 dark:divide-vault-800">
             {shares.map((s) => (
               <li key={s.id} className="py-2 flex items-center justify-between text-xs gap-3">
                 <button
                   onClick={() => copyText(`${window.location.origin}${s.path}`, () => setCopiedId(s.id))}
-                  className="text-vault-300 hover:text-white hover:underline whitespace-nowrap"
+                  className="text-slate-600 dark:text-vault-300 hover:text-white hover:underline whitespace-nowrap"
                 >
                   {copiedId === s.id ? "Copied" : "Copy link"}
                 </button>
-                <span className="text-vault-500 whitespace-nowrap">
+                <span className="text-slate-500 dark:text-vault-500 whitespace-nowrap">
                   {s.useCount}/{s.maxUses} used &middot; expires {new Date(s.expiresAt).toLocaleString()}
                 </span>
                 <Badge text={s.status} tone={s.status === "ACTIVE" ? "good" : "neutral"} />

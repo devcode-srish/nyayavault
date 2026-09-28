@@ -32,8 +32,13 @@ export default function Dashboard() {
         subtitle={`${user?.role.replace(/_/g, " ")} dashboard \u2014 DEMO / SYNTHETIC DATA`}
       />
       <div className="p-8">
-        {loading && <p className="text-vault-400 text-sm">Loading...</p>}
-        {error && <p className="text-red-400 text-sm">{error}</p>}
+        {loading && (
+          <div className="space-y-4 animate-pulse">
+            <div className="h-4 w-48 bg-slate-200 dark:bg-vault-800 rounded"></div>
+            <div className="h-32 w-full bg-slate-100 dark:bg-vault-800/50 rounded-xl"></div>
+          </div>
+        )}
+        {error && <p className="text-red-600 dark:text-red-400 text-sm font-medium p-4 bg-red-50 dark:bg-red-900/20 rounded-lg">{error}</p>}
         {data && renderByRole(data)}
       </div>
     </div>
@@ -45,11 +50,11 @@ function CaseList({ cases }: { cases: any[] }) {
   return (
     <ul className="space-y-2">
       {cases.map((c) => (
-        <li key={c.id} className="flex justify-between text-sm">
-          <Link to={`/cases/${c.id}`} className="text-vault-200 hover:text-white hover:underline">
-            {c.caseNumber} &mdash; {c.title}
+        <li key={c.id}>
+          <Link to={`/cases/${c.id}`} className="flex justify-between items-center text-sm p-3 rounded-lg border border-slate-100 hover:border-blue-200 hover:bg-blue-50 dark:border-vault-800/50 dark:hover:border-slate-300 dark:border-vault-700 dark:hover:bg-vault-800/30 transition-all shadow-sm">
+            <span className="text-slate-800 font-medium dark:text-vault-200">{c.caseNumber} <span className="text-slate-400 dark:text-vault-500 font-normal">&mdash; {c.title}</span></span>
+            <Badge text={c.status} />
           </Link>
-          <Badge text={c.status} />
         </li>
       ))}
     </ul>
@@ -64,17 +69,17 @@ function MyRequests({ requests }: { requests: any[] }) {
       ) : (
         <ul className="space-y-2">
           {requests.map((r) => (
-            <li key={r.id} className="flex justify-between items-center text-sm">
-              <Link to={`/documents/${r.document.id}`} className="text-vault-200 hover:text-white hover:underline">
-                {r.document.name}
+            <li key={r.id}>
+              <Link to={`/documents/${r.document.id}`} className="flex justify-between items-center text-sm p-3 rounded-lg border border-slate-100 hover:border-blue-200 hover:bg-blue-50 dark:border-vault-800/50 dark:hover:border-slate-300 dark:border-vault-700 dark:hover:bg-vault-800/30 transition-all shadow-sm">
+                <span className="text-slate-800 font-medium dark:text-vault-200">{r.document.name}</span>
+                <Badge text={r.status} tone={REQUEST_TONE[r.status] ?? "neutral"} />
               </Link>
-              <Badge text={r.status} tone={REQUEST_TONE[r.status] ?? "neutral"} />
             </li>
           ))}
         </ul>
       )}
-      <Link to="/access-requests" className="text-xs text-vault-400 hover:text-white hover:underline mt-3 inline-block">
-        View all
+      <Link to="/access-requests" className="text-xs text-blue-600 font-medium hover:text-blue-700 dark:text-vault-400 dark:hover:text-white hover:underline mt-4 inline-block">
+        View all &rarr;
       </Link>
     </Card>
   );
@@ -95,14 +100,14 @@ function renderByRole(data: any) {
             {data.recentAudit.length === 0 ? (
               <EmptyState text="No audit events yet." />
             ) : (
-              <ul className="divide-y divide-vault-800">
+              <ul className="divide-y divide-slate-100 dark:divide-vault-800">
                 {data.recentAudit.map((a: any) => (
-                  <li key={a.id} className="py-2 text-sm text-vault-200 flex justify-between">
+                  <li key={a.id} className="py-3 text-sm text-slate-800 dark:text-vault-200 flex justify-between items-center">
                     <span>
                       {a.action.replace(/_/g, " ")}
-                      {a.actor?.name && <span className="text-vault-500"> &middot; {a.actor.name}</span>}
+                      {a.actor?.name && <span className="text-slate-500 dark:text-vault-500"> &middot; {a.actor.name}</span>}
                     </span>
-                    <span className="text-vault-500 text-xs">{new Date(a.createdAt).toLocaleString()}</span>
+                    <span className="text-slate-400 dark:text-vault-500 text-xs font-mono">{new Date(a.createdAt).toLocaleString()}</span>
                   </li>
                 ))}
               </ul>
@@ -123,11 +128,11 @@ function renderByRole(data: any) {
             ) : (
               <ul className="space-y-2">
                 {data.widgets.recentDocuments.map((d: any) => (
-                  <li key={d.id} className="flex justify-between text-sm">
-                    <Link to={`/documents/${d.id}`} className="text-vault-200 hover:text-white hover:underline">
-                      {d.name}
+                  <li key={d.id}>
+                    <Link to={`/documents/${d.id}`} className="flex justify-between items-center text-sm p-3 rounded-lg border border-slate-100 hover:border-blue-200 hover:bg-blue-50 dark:border-vault-800/50 dark:hover:border-slate-300 dark:border-vault-700 dark:hover:bg-vault-800/30 transition-all shadow-sm">
+                      <span className="text-slate-800 font-medium dark:text-vault-200">{d.name}</span>
+                      <Badge text={d.classification} tone={d.classification === "RESTRICTED" ? "danger" : d.classification === "CONFIDENTIAL" ? "warn" : "neutral"} />
                     </Link>
-                    <Badge text={d.classification} />
                   </li>
                 ))}
               </ul>
@@ -151,15 +156,15 @@ function renderByRole(data: any) {
             ) : (
               <ul className="space-y-2">
                 {data.widgets.pendingApprovals.map((r: any) => (
-                  <li key={r.id} className="text-sm text-vault-200">
-                    {r.requestedBy?.name} requested <span className="text-white">{r.document?.name}</span>
-                    {r.reason && <span className="text-vault-500"> &mdash; &ldquo;{r.reason}&rdquo;</span>}
+                  <li key={r.id} className="text-sm text-slate-800 dark:text-vault-200 p-3 rounded-lg border border-slate-100 dark:border-vault-800/50 shadow-sm bg-white dark:bg-transparent">
+                    <span className="font-medium text-slate-900 dark:text-white">{r.requestedBy?.name}</span> requested <span className="font-medium text-slate-900 dark:text-white">{r.document?.name}</span>
+                    {r.reason && <span className="text-slate-500 dark:text-vault-500"> &mdash; &ldquo;{r.reason}&rdquo;</span>}
                   </li>
                 ))}
               </ul>
             )}
-            <Link to="/access-requests" className="text-xs text-vault-400 hover:text-white hover:underline mt-3 inline-block">
-              Review requests
+            <Link to="/access-requests" className="text-xs text-blue-600 font-medium hover:text-blue-700 dark:text-vault-400 dark:hover:text-white hover:underline mt-4 inline-block">
+              Review requests &rarr;
             </Link>
           </Card>
           <Card title="Supervised Cases">
@@ -176,11 +181,13 @@ function renderByRole(data: any) {
           ) : (
             <ul className="space-y-2">
               {data.widgets.assignedEvidence.map((e: any) => (
-                <li key={e.id} className="flex justify-between text-sm">
-                  <Link to={`/evidence/${e.id}`} className="text-vault-200 hover:text-white hover:underline">
-                    {e.name} <span className="text-vault-500">({e.case.caseNumber})</span>
+                <li key={e.id}>
+                  <Link to={`/evidence/${e.id}`} className="flex justify-between items-center text-sm p-3 rounded-lg border border-slate-100 hover:border-blue-200 hover:bg-blue-50 dark:border-vault-800/50 dark:hover:border-slate-300 dark:border-vault-700 dark:hover:bg-vault-800/30 transition-all shadow-sm">
+                    <span className="text-slate-800 font-medium dark:text-vault-200">
+                      {e.name} <span className="text-slate-400 dark:text-vault-500 font-normal">({e.case.caseNumber})</span>
+                    </span>
+                    <Badge text={e.status.replace(/_/g, " ")} tone={e.status === "COLLECTED" ? "good" : "neutral"} />
                   </Link>
-                  <Badge text={e.status.replace(/_/g, " ")} />
                 </li>
               ))}
             </ul>

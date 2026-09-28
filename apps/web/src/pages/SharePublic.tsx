@@ -57,39 +57,39 @@ export default function SharePublic() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-vault-950 px-4">
+    <div className="min-h-screen flex items-center justify-center bg-white dark:bg-vault-950 px-4">
       <div className="w-full max-w-lg">
         <div className="flex items-center gap-2 mb-6 justify-center">
-          <ShieldCheck className="text-vault-300" size={26} />
+          <ShieldCheck className="text-slate-600 dark:text-vault-300" size={26} />
           <h1 className="text-xl font-semibold text-white">NyayaVault &mdash; Secure Share</h1>
         </div>
 
-        <div className="bg-vault-900 border border-vault-800 rounded-xl p-6">
-          {loading && <p className="text-vault-400 text-sm">Checking link...</p>}
+        <div className="bg-white dark:bg-vault-900 border border-slate-200 dark:border-vault-800 rounded-xl p-6">
+          {loading && <p className="text-slate-500 dark:text-vault-400 text-sm">Checking link...</p>}
           {error && <p className="text-red-400 text-sm">{error}</p>}
 
           {info && (
             <>
               <p className="text-white font-medium">{info.name}</p>
-              <p className="text-xs text-vault-400 mt-1">
+              <p className="text-xs text-slate-500 dark:text-vault-400 mt-1">
                 {info.fileName} &middot; {formatSize(info.sizeBytes)} &middot; version {info.versionNo}
               </p>
               <dl className="mt-4 space-y-2 text-xs">
                 <div>
-                  <dt className="text-vault-500">Shared by</dt>
-                  <dd className="text-vault-300">{info.sharedBy}</dd>
+                  <dt className="text-slate-500 dark:text-vault-500">Shared by</dt>
+                  <dd className="text-slate-600 dark:text-vault-300">{info.sharedBy}</dd>
                 </div>
                 <div>
-                  <dt className="text-vault-500">Link expires</dt>
-                  <dd className="text-vault-300">{new Date(info.expiresAt).toLocaleString()}</dd>
+                  <dt className="text-slate-500 dark:text-vault-500">Link expires</dt>
+                  <dd className="text-slate-600 dark:text-vault-300">{new Date(info.expiresAt).toLocaleString()}</dd>
                 </div>
                 <div>
-                  <dt className="text-vault-500">Downloads remaining</dt>
-                  <dd className="text-vault-300">{info.usesRemaining}</dd>
+                  <dt className="text-slate-500 dark:text-vault-500">Downloads remaining</dt>
+                  <dd className="text-slate-600 dark:text-vault-300">{info.usesRemaining}</dd>
                 </div>
                 <div>
-                  <dt className="text-vault-500">SHA-256 (compare after download)</dt>
-                  <dd className="text-vault-300 break-all">{info.sha256}</dd>
+                  <dt className="text-slate-500 dark:text-vault-500">SHA-256 (compare after download)</dt>
+                  <dd className="text-slate-600 dark:text-vault-300 break-all">{info.sha256}</dd>
                 </div>
               </dl>
 
@@ -97,12 +97,12 @@ export default function SharePublic() {
                 <button
                   onClick={download}
                   disabled={busy}
-                  className="mt-5 w-full rounded-lg bg-vault-500 hover:bg-vault-400 transition text-white text-sm font-medium py-2 disabled:opacity-50"
+                  className="mt-5 w-full rounded-lg bg-blue-600 dark:bg-vault-500 hover:bg-blue-700 dark:hover:bg-vault-400 transition text-white text-sm font-medium py-2 disabled:opacity-50"
                 >
                   {busy ? "Preparing..." : "Download"}
                 </button>
               ) : (
-                <p className="mt-5 text-sm text-vault-400">This link has no downloads remaining.</p>
+                <p className="mt-5 text-sm text-slate-500 dark:text-vault-400">This link has no downloads remaining.</p>
               )}
               {downloaded && <p className="mt-3 text-xs text-emerald-300">Download started.</p>}
               {dlError && <p className="mt-3 text-sm text-red-400">{dlError}</p>}

@@ -73,15 +73,15 @@ export default function AccessRequests() {
         }
       />
       <div className="p-8">
-        {loading && <p className="text-vault-400 text-sm">Loading...</p>}
+        {loading && <p className="text-slate-500 dark:text-vault-400 text-sm">Loading...</p>}
         {error && <p className="text-red-400 text-sm mb-4">{error}</p>}
         {!loading && requests.length === 0 && (
           <EmptyState text="No access requests yet. Open a locked document to request access." />
         )}
         {requests.length > 0 && (
-          <div className="bg-vault-900 border border-vault-800 rounded-xl overflow-x-auto">
+          <div className="bg-white dark:bg-vault-900 border border-slate-200 dark:border-vault-800 rounded-xl overflow-x-auto">
             <table className="w-full text-sm">
-              <thead className="bg-vault-800/50 text-vault-400 text-xs uppercase">
+              <thead className="bg-slate-50 dark:bg-vault-800/50 text-slate-500 dark:text-vault-400 text-xs uppercase">
                 <tr>
                   <th className="text-left px-4 py-2">Document</th>
                   <th className="text-left px-4 py-2">Requested by</th>
@@ -91,26 +91,26 @@ export default function AccessRequests() {
                   <th className="text-left px-4 py-2"></th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-vault-800">
+              <tbody className="divide-y divide-slate-100 dark:divide-vault-800">
                 {sorted.map((r) => (
                   <tr key={r.id} className="align-top">
                     <td className="px-4 py-3">
-                      <Link to={`/documents/${r.document.id}`} className="text-vault-200 hover:text-white hover:underline">
+                      <Link to={`/documents/${r.document.id}`} className="text-slate-700 dark:text-vault-200 hover:text-white hover:underline">
                         {r.document.name}
                       </Link>
-                      <p className="text-xs text-vault-500">
+                      <p className="text-xs text-slate-500 dark:text-vault-500">
                         {r.document.case.caseNumber} &middot; {r.document.classification}
                       </p>
                     </td>
-                    <td className="px-4 py-3 text-vault-300">
+                    <td className="px-4 py-3 text-slate-600 dark:text-vault-300">
                       {r.requestedBy.name}
-                      <p className="text-xs text-vault-500">{new Date(r.createdAt).toLocaleString()}</p>
+                      <p className="text-xs text-slate-500 dark:text-vault-500">{new Date(r.createdAt).toLocaleString()}</p>
                     </td>
-                    <td className="px-4 py-3 text-vault-400 max-w-xs">{r.reason || "\u2014"}</td>
+                    <td className="px-4 py-3 text-slate-500 dark:text-vault-400 max-w-xs">{r.reason || "\u2014"}</td>
                     <td className="px-4 py-3">
                       <Badge text={r.status} tone={TONE[r.status] ?? "neutral"} />
                     </td>
-                    <td className="px-4 py-3 text-xs text-vault-500">
+                    <td className="px-4 py-3 text-xs text-slate-500 dark:text-vault-500">
                       {r.decidedBy ? (
                         <>
                           {r.decidedBy.name}
@@ -128,7 +128,7 @@ export default function AccessRequests() {
                           <select
                             value={hours[r.id] ?? 24}
                             onChange={(e) => setHours({ ...hours, [r.id]: Number(e.target.value) })}
-                            className="rounded-lg bg-vault-950 border border-vault-700 px-2 py-1 text-xs text-white"
+                            className="rounded-lg bg-white dark:bg-vault-950 border border-slate-300 dark:border-vault-700 px-2 py-1 text-xs text-slate-900 dark:text-white"
                           >
                             {DURATIONS.map((d) => (
                               <option key={d.value} value={d.value}>{d.label}</option>
@@ -144,7 +144,7 @@ export default function AccessRequests() {
                           <button
                             onClick={() => decide(r.id, "reject")}
                             disabled={busyId === r.id}
-                            className="rounded-lg bg-vault-700 hover:bg-red-800 text-white text-xs px-3 py-1 disabled:opacity-50"
+                            className="rounded-lg bg-slate-700 dark:bg-vault-700 hover:bg-red-800 text-white text-xs px-3 py-1 disabled:opacity-50"
                           >
                             Reject
                           </button>
