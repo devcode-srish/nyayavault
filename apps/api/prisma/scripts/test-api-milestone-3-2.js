@@ -155,10 +155,8 @@ async function runHttpTests() {
 
     // Cleanup
     console.log('\n--- Cleaning up HTTP test records ---');
-    await prisma.documentAccess.deleteMany({ where: { documentId: testDoc.id } });
-    await prisma.accessRequest.deleteMany({ where: { documentId: testDoc.id } });
-    await prisma.document.delete({ where: { id: testDoc.id } });
-    await prisma.case.delete({ where: { id: testCase.id } });
+    // Retain document and case records to prevent foreign key cascade on audit logs
+
 
     console.log('\n======================================================');
     console.log('ALL HTTP INTEGRATION TESTS PASSED FOR MILESTONE 3.2!');

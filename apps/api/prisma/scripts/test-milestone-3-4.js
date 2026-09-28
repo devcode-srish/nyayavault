@@ -287,17 +287,14 @@ async function runMilestone34Tests() {
     const legacyRes = await fetch(`${API_URL}/share/${legacyRawToken}`);
     assert(legacyRes.status === 200, 'Legacy share link successfully resolved via tokenHash');
 
-    // Cleanup
+    // Cleanup storage files and share links (keep document record to prevent foreign key cascade on audit logs)
     console.log('\n--- Cleaning up test records ---');
     await prisma.shareLink.deleteMany({ where: { documentId: testDoc.id } });
-    await prisma.documentVersion.deleteMany({ where: { documentId: testDoc.id } });
-    await prisma.document.delete({ where: { id: testDoc.id } });
-    await prisma.caseMember.deleteMany({ where: { caseId: testCase.id } });
-    await prisma.case.delete({ where: { id: testCase.id } });
     [storageDir1, storageDir2].forEach((dir) => {
       const p = path.join(dir, sampleStorageKey);
       if (fs.existsSync(p)) fs.unlinkSync(p);
     });
+
 
     console.log('\n======================================================');
     console.log(`ALL MILESTONE 3.4 TESTS PASSED! (${passed}/${total})`);

@@ -1,60 +1,15 @@
 import { PrismaClient } from "@prisma/client";
 import crypto from "crypto";
+import {
+  GENESIS_PREV_HASH,
+  computeAuditHashV2,
+  computeAuditHashV1,
+  verifyAuditChain,
+  canonicalJson,
+} from "../src/lib/audit";
 
 const prisma = new PrismaClient();
 
-const GENESIS_PREV_HASH = "0000000000000000000000000000000000000000000000000000000000000000";
-
-/**
- * Deterministic JSON Canonicalization (RFC 8785 subset):
- * Sorts all object keys lexicographically and strips extraneous whitespace.
- */
-export function canonicalJson(obj: any): string {
-  if (obj === null || obj === undefined) return "";
-  if (typeof obj !== "object") return JSON.stringify(obj);
-  if (Array.isArray(obj)) {
-    return "[" + obj.map(canonicalJson).join(",") + "]";
-  }
-  const keys = Object.keys(obj).sort();
-  const pairs = keys.map((k) => JSON.stringify(k) + ":" + canonicalJson(obj[k]));
-  return "{" + pairs.join(",") + "}";
-}
-
-/**
- * Deterministic Canonical String construction for Audit Log entry.
- */
-export function canonicalAuditString(entry: {
-  id: string;
-  createdAt: Date;
-  action: string;
-  outcome?: string | null;
-  actorId?: string | null;
-  caseId?: string | null;
-  documentId?: string | null;
-  evidenceId?: string | null;
-  notes?: string | null;
-  metadata?: any;
-  previousHash: string;
-}): string {
-  return [
-    entry.id,
-    entry.createdAt.toISOString(),
-    entry.action,
-    entry.outcome || "SUCCESS",
-    entry.actorId || "",
-    entry.caseId || "",
-    entry.documentId || "",
-    entry.evidenceId || "",
-    entry.notes ? entry.notes.trim() : "",
-    canonicalJson(entry.metadata),
-    entry.previousHash,
-  ].join("|");
-}
-
-export function computeAuditHash(entry: Parameters<typeof canonicalAuditString>[0]): string {
-  const canonical = canonicalAuditString(entry);
-  return crypto.createHash("sha256").update(canonical, "utf8").digest("hex");
-}
 
 async function main() {
   console.log("=== Starting Phase 3.1 Idempotent Data Backfill ===");
@@ -98,7 +53,23 @@ async function main() {
   let backfilledCount = 0;
 
   for (const log of allLogs) {
-    const expectedHash = computeAuditHash({
+    // 1. Check if the log already has a valid hash linking to currentPrevHash under V2 or V1
+    const isValidV2 = log.hash && log.previousHash === currentPrevHash && log.hash === computeAuditHashV2({
+      id: log.id,
+      createdAt: log.createdAt,
+      action: log.action,
+      outcome: log.outcome,
+      actorId: log.actorId,
+      caseId: log.caseId,
+      documentId: log.documentId,
+      evidenceId: log.evidenceId,
+      targetUserId: log.targetUserId,
+      notes: log.notes,
+      metadata: log.metadata,
+      previousHash: currentPrevHash,
+    });
+
+    const isValidV1 = log.hash && log.previousHash === currentPrevHash && log.hash === computeAuditHashV1({
       id: log.id,
       createdAt: log.createdAt,
       action: log.action,
@@ -112,36 +83,14 @@ async function main() {
       previousHash: currentPrevHash,
     });
 
-    if (log.previousHash !== currentPrevHash || log.hash !== expectedHash) {
-      await prisma.auditLog.update({
-        where: { id: log.id },
-        data: {
-          previousHash: currentPrevHash,
-          hash: expectedHash,
-        },
-      });
-      backfilledCount++;
+    if (isValidV2 || isValidV1) {
+      // Historical record is already valid and cryptographically chained — preserve untouched!
+      currentPrevHash = log.hash!;
+      continue;
     }
 
-    currentPrevHash = expectedHash;
-  }
-  console.log(`   Total audit entries processed: ${allLogs.length}. Backfilled/Updated: ${backfilledCount}.`);
-
-  // -------------------------------------------------------------
-  // 4. Verification Check
-  // -------------------------------------------------------------
-  console.log("4. Verifying final linear audit chain integrity...");
-  const verifiedLogs = await prisma.auditLog.findMany({
-    orderBy: [{ createdAt: "asc" }, { id: "asc" }],
-  });
-
-  let verifyPrevHash = GENESIS_PREV_HASH;
-  let chainValid = true;
-  let brokenIndex = -1;
-
-  for (let i = 0; i < verifiedLogs.length; i++) {
-    const log = verifiedLogs[i];
-    const recalculated = computeAuditHash({
+    // 2. Unhashed record or unlinked legacy entry: compute V2 canonical hash
+    const expectedHash = computeAuditHashV2({
       id: log.id,
       createdAt: log.createdAt,
       action: log.action,
@@ -150,29 +99,40 @@ async function main() {
       caseId: log.caseId,
       documentId: log.documentId,
       evidenceId: log.evidenceId,
+      targetUserId: log.targetUserId,
       notes: log.notes,
       metadata: log.metadata,
-      previousHash: verifyPrevHash,
+      previousHash: currentPrevHash,
     });
 
-    if (log.previousHash !== verifyPrevHash || log.hash !== recalculated) {
-      chainValid = false;
-      brokenIndex = i;
-      console.error(`❌ Chain verification FAILED at index ${i} (ID: ${log.id})`);
-      break;
-    }
-    verifyPrevHash = log.hash!;
+    await prisma.auditLog.update({
+      where: { id: log.id },
+      data: {
+        previousHash: currentPrevHash,
+        hash: expectedHash,
+      },
+    });
+    backfilledCount++;
+    currentPrevHash = expectedHash;
   }
+  console.log(`   Total audit entries processed: ${allLogs.length}. Newly Backfilled: ${backfilledCount}. Preserved Historical: ${allLogs.length - backfilledCount}.`);
 
-  if (chainValid) {
-    console.log(`✅ Audit hash chain verified 100% intact across all ${verifiedLogs.length} entries!`);
+
+  // -------------------------------------------------------------
+  // 4. Verification Check
+  // -------------------------------------------------------------
+  console.log("4. Verifying final linear audit chain integrity via verifyAuditChain()...");
+  const result = await verifyAuditChain();
+
+  if (result.status === "VALID") {
+    console.log(`✅ Audit hash chain verified 100% intact across all ${result.totalRecords} entries!`);
     console.log(`   Genesis PrevHash: ${GENESIS_PREV_HASH}`);
-    console.log(`   Latest Chain Tip: ${verifyPrevHash}`);
+    console.log(`   Format versions encountered: ${result.formatVersions.join(", ")}`);
   } else {
-    throw new Error(`Audit chain verification failed at entry index ${brokenIndex}`);
+    throw new Error(`Audit chain verification failed: ${result.failureReason}`);
   }
 
-  console.log("=== Milestone 3.1 Backfill Completed Successfully ===");
+  console.log("=== Milestone 3.5 Backfill & Verification Completed Successfully ===");
 }
 
 main()
@@ -183,3 +143,4 @@ main()
   .finally(async () => {
     await prisma.$disconnect();
   });
+

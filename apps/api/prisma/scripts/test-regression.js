@@ -191,10 +191,8 @@ async function runRegressionSuite() {
     await prisma.shareLink.deleteMany({ where: { documentId: p2Doc.id } });
     await prisma.documentAccess.deleteMany({ where: { documentId: p2Doc.id } });
     await prisma.accessRequest.deleteMany({ where: { documentId: p2Doc.id } });
-    await prisma.documentVersion.deleteMany({ where: { documentId: p2Doc.id } });
-    await prisma.document.delete({ where: { id: p2Doc.id } });
-    await prisma.caseMember.deleteMany({ where: { caseId: p1Case.id } });
-    await prisma.case.delete({ where: { id: p1Case.id } });
+    // Retain document and case records to prevent foreign key cascade on audit logs
+
 
     console.log('\n======================================================');
     console.log(`ALL REGRESSION TESTS PASSED! (${passed}/${total})`);

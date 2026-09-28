@@ -260,10 +260,8 @@ async function runMilestone33Tests() {
 
     // Cleanup
     console.log('\n--- Cleaning up test records ---');
-    await prisma.evidenceTransfer.deleteMany({ where: { evidenceId: evidenceItem.id } });
-    await prisma.evidenceItem.delete({ where: { id: evidenceItem.id } });
-    await prisma.caseMember.deleteMany({ where: { caseId: testCase.id } });
-    await prisma.case.delete({ where: { id: testCase.id } });
+    // Keep evidence record to prevent foreign key cascade on audit logs
+
 
     console.log('\n======================================================');
     console.log(`ALL MILESTONE 3.3 TESTS PASSED! (${passed}/${total})`);

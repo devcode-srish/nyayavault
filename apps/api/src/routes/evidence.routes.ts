@@ -5,6 +5,7 @@ import { prisma } from "../lib/prisma";
 import { accessibleCaseIds, userCanAccessCase } from "../lib/access";
 import { notifyUsers } from "../lib/notify";
 import { PackageCondition } from "@prisma/client";
+import { recordAudit } from "../lib/audit";
 
 const router = Router();
 
@@ -151,8 +152,8 @@ router.post("/transfers/:transferId/accept", requireAuth, async (req, res) => {
       });
 
       // 3. Transactionally consistent audit log creation
-      await tx.auditLog.create({
-        data: {
+      await recordAudit(
+        {
           action: "EVIDENCE_TRANSFERRED",
           actorId: userId,
           evidenceId: transfer.evidenceId,
@@ -160,7 +161,8 @@ router.post("/transfers/:transferId/accept", requireAuth, async (req, res) => {
           targetUserId: transfer.toUserId,
           notes: `Custody of "${transfer.evidence.name}" accepted by recipient. Package condition: ${transfer.packageCondition}${transfer.sealNumber ? ", Seal: " + transfer.sealNumber : ""}`,
         },
-      });
+        tx
+      );
     });
   } catch (err) {
     if (err instanceof Error && err.message === "ALREADY_DECIDED") {
@@ -229,8 +231,8 @@ router.post("/transfers/:transferId/reject", requireAuth, async (req, res) => {
         throw new Error("ALREADY_DECIDED");
       }
 
-      await tx.auditLog.create({
-        data: {
+      await recordAudit(
+        {
           action: "EVIDENCE_TRANSFERRED",
           actorId: userId,
           evidenceId: transfer.evidenceId,
@@ -238,7 +240,8 @@ router.post("/transfers/:transferId/reject", requireAuth, async (req, res) => {
           targetUserId: transfer.fromUserId ?? undefined,
           notes: `Custody transfer of "${transfer.evidence.name}" rejected: ${reason}`,
         },
-      });
+        tx
+      );
     });
   } catch (err) {
     if (err instanceof Error && err.message === "ALREADY_DECIDED") {
@@ -296,8 +299,8 @@ router.post("/transfers/:transferId/cancel", requireAuth, async (req, res) => {
         throw new Error("ALREADY_DECIDED");
       }
 
-      await tx.auditLog.create({
-        data: {
+      await recordAudit(
+        {
           action: "EVIDENCE_TRANSFERRED",
           actorId: userId,
           evidenceId: transfer.evidenceId,
@@ -305,7 +308,8 @@ router.post("/transfers/:transferId/cancel", requireAuth, async (req, res) => {
           targetUserId: transfer.toUserId,
           notes: `Custody transfer of "${transfer.evidence.name}" cancelled by sender`,
         },
-      });
+        tx
+      );
     });
   } catch (err) {
     if (err instanceof Error && err.message === "ALREADY_DECIDED") {
@@ -401,8 +405,8 @@ router.post(
         },
       });
 
-      await tx.auditLog.create({
-        data: {
+      await recordAudit(
+        {
           action: "EVIDENCE_TRANSFERRED",
           actorId: userId,
           evidenceId: item.id,
@@ -410,7 +414,8 @@ router.post(
           targetUserId: userId,
           notes: `Evidence "${name}" logged (initial custody)`,
         },
-      });
+        tx
+      );
     });
 
     return res.status(201).json({ evidence: item });
@@ -488,8 +493,8 @@ router.post("/:id/transfer", requireAuth, async (req, res) => {
         },
       });
 
-      await tx.auditLog.create({
-        data: {
+      await recordAudit(
+        {
           action: "EVIDENCE_TRANSFERRED",
           actorId: userId,
           evidenceId: id,
@@ -497,7 +502,8 @@ router.post("/:id/transfer", requireAuth, async (req, res) => {
           targetUserId: target.id,
           notes: `Custody transfer of "${item.name}" initiated to ${target.name} (pending acceptance). Seal: ${sealNumber || "N/A"}, Condition: ${packageCondition}`,
         },
-      });
+        tx
+      );
     });
   } catch (err) {
     if (err instanceof Error && err.message === "ALREADY_PENDING") {
