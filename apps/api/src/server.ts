@@ -21,7 +21,11 @@ import { startExpiryScheduler } from "./jobs/scheduler";
 
 const app = express();
 
-app.use(helmet());
+app.use(
+  helmet({
+    referrerPolicy: { policy: "no-referrer" },
+  })
+);
 app.use(
   cors({
     origin: process.env.CORS_ORIGIN || "http://localhost:5173",
@@ -57,6 +61,15 @@ const shareLimiter = rateLimit({
   message: { error: "Too many requests, please try again later." },
 });
 
+// Public evidence verification rate limiter (anti-enumeration & anti-oracle protection)
+const evidenceVerifyLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  limit: process.env.NODE_ENV === "production" ? 60 : 2000,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: "Too many verification requests, please try again later." },
+});
+
 app.get("/api/health", (_req, res) => {
   res.json({ ok: true, service: "nyayavault-api", time: new Date().toISOString() });
 });
@@ -69,7 +82,7 @@ app.use("/api/documents", documentsRoutes);
 app.use("/api/audit", auditRoutes);
 app.use("/api/access-requests", accessRequestsRoutes);
 app.use("/api/notifications", notificationsRoutes);
-app.use("/api/evidence", evidenceRoutes);
+app.use("/api/evidence", evidenceVerifyLimiter, evidenceRoutes);
 app.use("/api/share", shareLimiter, shareRoutes);
 app.use("/api/admin", adminRoutes);
 app.use("/api/signatures", signaturesRoutes);

@@ -92,6 +92,8 @@ enum AuditAction {
   CASE_CREATED
   AI_QUERY
   INVESTIGATION_NOTE_CREATED
+  CUSTODY_RECEIPT_GENERATED
+  EVIDENCE_QR_ROTATED
 }
 
 enum TimelineEventCategory {
@@ -361,20 +363,24 @@ model AuditLog {
 }
 
 model EvidenceItem {
-  id           String         @id @default(cuid())
-  caseId       String
-  case         Case           @relation(fields: [caseId], references: [id], onDelete: Cascade)
-  name         String
-  description  String?
-  status       EvidenceStatus @default(COLLECTED)
+  id                 String             @id @default(cuid())
+  caseId             String
+  case               Case               @relation(fields: [caseId], references: [id], onDelete: Cascade)
+  name               String
+  description        String?
+  status             EvidenceStatus     @default(COLLECTED)
   currentCustodianId String?
-  createdAt    DateTime       @default(now())
-  updatedAt    DateTime       @updatedAt
+  qrTokenHash        String?            @unique @db.VarChar(64)
+  qrTokenEncrypted   String?            @db.Text
+  qrRotatedAt        DateTime?
+  createdAt          DateTime           @default(now())
+  updatedAt          DateTime           @updatedAt
 
   transfers EvidenceTransfer[]
   auditLogs AuditLog[]
 
   @@index([caseId])
+  @@index([qrTokenHash])
 }
 
 model EvidenceTransfer {
@@ -391,6 +397,7 @@ model EvidenceTransfer {
   packageCondition PackageCondition       @default(SEALED_INTACT)
   location         String?
   notes            String?
+  receiptNumber    String?                @unique @db.VarChar(64)
   decidedAt        DateTime?
   rejectionReason  String?
   transferredAt    DateTime               @default(now())
@@ -399,6 +406,7 @@ model EvidenceTransfer {
   @@index([toUserId, status])
   @@index([fromUserId, status])
   @@index([evidenceId])
+  @@index([receiptNumber])
 }
 
 model UserSigningKey {

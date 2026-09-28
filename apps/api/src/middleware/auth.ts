@@ -52,3 +52,21 @@ export function requireRole(...allowedRoles: Role[]) {
     return next();
   };
 }
+
+/**
+ * optionalAuth extracts and attaches req.user if a valid Bearer token is provided,
+ * but allows unauthenticated requests to proceed.
+ */
+export function optionalAuth(req: Request, _res: Response, next: NextFunction) {
+  const header = req.headers.authorization;
+  if (header && header.startsWith("Bearer ")) {
+    const token = header.slice("Bearer ".length);
+    try {
+      const payload = verifyAccessToken(token);
+      req.user = payload;
+    } catch {
+      // ignore invalid token for optional auth
+    }
+  }
+  return next();
+}

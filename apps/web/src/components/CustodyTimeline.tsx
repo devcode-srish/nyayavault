@@ -2,12 +2,14 @@ import { EmptyState } from "./ui";
 
 export interface TimelineEvent {
   id: string;
+  transferId?: string;
   title: string;
   actor?: string;
   detail?: string;
   notes?: string | null;
   at: string;
   tone?: "neutral" | "good" | "danger" | "warn";
+  status?: string;
 }
 
 const AUDIT_LABELS: Record<string, string> = {
@@ -44,7 +46,13 @@ const DOT: Record<string, string> = {
   warn: "bg-amber-500 border-amber-300",
 };
 
-export default function CustodyTimeline({ events }: { events: TimelineEvent[] }) {
+export default function CustodyTimeline({
+  events,
+  onViewReceipt,
+}: {
+  events: TimelineEvent[];
+  onViewReceipt?: (transferId: string) => void;
+}) {
   if (events.length === 0) return <EmptyState text="No custody events recorded." />;
 
   return (
@@ -59,7 +67,18 @@ export default function CustodyTimeline({ events }: { events: TimelineEvent[] })
               {e.title}
               {e.detail && <span className="text-vault-300"> {e.detail}</span>}
             </p>
-            <span className="text-xs text-vault-500">{new Date(e.at).toLocaleString()}</span>
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-vault-500">{new Date(e.at).toLocaleString()}</span>
+              {e.transferId && onViewReceipt && (
+                <button
+                  type="button"
+                  onClick={() => onViewReceipt(e.transferId!)}
+                  className="px-2 py-0.5 rounded bg-vault-950 hover:bg-vault-800 border border-vault-700 text-[11px] font-medium text-vault-300 hover:text-white transition"
+                >
+                  View Receipt
+                </button>
+              )}
+            </div>
           </div>
           {e.actor && <p className="text-xs text-vault-400">by {e.actor}</p>}
           {e.notes && <p className="text-xs text-vault-500 mt-0.5">{e.notes}</p>}

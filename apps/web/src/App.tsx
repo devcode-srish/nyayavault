@@ -19,6 +19,7 @@ import EvidenceDetail from "./pages/EvidenceDetail";
 import SharePublic from "./pages/SharePublic";
 import Signatures from "./pages/Signatures";
 import Security from "./pages/Security";
+import VerifyEvidence from "./pages/VerifyEvidence";
 
 export default function App() {
   return (
@@ -27,6 +28,7 @@ export default function App() {
         <Routes>
           <Route path="/login" element={<Login />} />
           <Route path="/share/:token" element={<SharePublic />} />
+          <Route path="/verify/evidence" element={<VerifyEvidence />} />
           <Route
             element={
               <ProtectedRoute>

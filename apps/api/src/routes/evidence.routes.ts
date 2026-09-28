@@ -1,11 +1,14 @@
 import { Router } from "express";
 import { z } from "zod";
-import { requireAuth, requireRole } from "../middleware/auth";
+import { requireAuth, requireRole, optionalAuth } from "../middleware/auth";
 import { prisma } from "../lib/prisma";
 import { accessibleCaseIds, userCanAccessCase } from "../lib/access";
 import { notifyUsers } from "../lib/notify";
 import { PackageCondition } from "@prisma/client";
 import { recordAudit } from "../lib/audit";
+import { encryptData, decryptData } from "../lib/encryption";
+import { generateQRToken, hashQRToken, generateQRCodeSVG, generateQRCodeDataURI } from "../lib/qr";
+import { getCustodyReceipt, getOrAssignReceiptNumber } from "../services/receipt.service";
 
 const router = Router();
 
@@ -319,6 +322,237 @@ router.post("/transfers/:transferId/cancel", requireAuth, async (req, res) => {
   }
 
   return res.json({ ok: true, status: "CANCELLED" });
+});
+
+// GET /api/evidence/transfers/:transferId/receipt - view or export official custody receipt
+router.get("/transfers/:transferId/receipt", requireAuth, async (req, res) => {
+  const { sub: userId, role } = req.user!;
+  const { transferId } = req.params;
+  const recordAudit = req.query.recordAudit === "true";
+
+  const result = await getCustodyReceipt(transferId, userId, role, { recordAudit });
+  if (!result.success) {
+    return res.status(result.status).json({ error: result.error });
+  }
+
+  return res.json({ ok: true, receipt: result.receipt });
+});
+
+// GET /api/evidence/verify/:token - verify physical evidence tag with anti-oracle protections
+router.get("/verify/:token", optionalAuth, async (req, res) => {
+  const { token } = req.params;
+
+  // Validate format (strictly 64 hex characters = 256 bits)
+  if (!token || !/^[a-f0-9]{64}$/i.test(token)) {
+    return res.status(400).json({
+      authenticated: false,
+      validTag: false,
+      message: "Invalid or malformed verification token",
+    });
+  }
+
+  const tokenHash = hashQRToken(token);
+  const item = await prisma.evidenceItem.findUnique({
+    where: { qrTokenHash: tokenHash },
+    include: {
+      case: { select: { id: true, caseNumber: true, title: true } },
+      transfers: {
+        orderBy: { transferredAt: "asc" },
+        include: {
+          fromUser: { select: { id: true, name: true, role: true } },
+          toUser: { select: { id: true, name: true, role: true } },
+        },
+      },
+    },
+  });
+
+  // If unauthenticated: anti-oracle generic response (no case or item leakage)
+  if (!req.user) {
+    return res.json({
+      authenticated: false,
+      validTag: !!item,
+      message: "Authentication required to view evidence details and chain of custody",
+    });
+  }
+
+  const { sub: userId, role } = req.user;
+
+  // If tag not found
+  if (!item) {
+    return res.status(404).json({
+      authenticated: true,
+      validTag: false,
+      error: "Evidence tag not found or has been revoked/rotated",
+    });
+  }
+
+  // Check case-level authorization
+  if (!(await userCanAccessEvidence(userId, role, item))) {
+    return res.status(403).json({
+      authenticated: true,
+      authorized: false,
+      error: "Access denied: you do not have permission to view this evidence record",
+    });
+  }
+
+  const users = await custodianMap([item.currentCustodianId]);
+  const custodian = item.currentCustodianId ? users.get(item.currentCustodianId) ?? null : null;
+
+  return res.json({
+    authenticated: true,
+    authorized: true,
+    evidence: {
+      id: item.id,
+      name: item.name,
+      description: item.description,
+      status: item.status,
+      case: item.case,
+      currentCustodian: custodian,
+      qrRotatedAt: item.qrRotatedAt,
+      createdAt: item.createdAt,
+      transfers: item.transfers,
+    },
+  });
+});
+
+// GET /api/evidence/:id/qr-label - retrieve or initialize printable QR label with SVG
+router.get("/:id/qr-label", requireAuth, async (req, res) => {
+  const { sub: userId, role } = req.user!;
+  const { id } = req.params;
+
+  const item = await prisma.evidenceItem.findUnique({
+    where: { id },
+    include: {
+      case: { select: { id: true, caseNumber: true, title: true } },
+    },
+  });
+
+  if (!item) return res.status(404).json({ error: "Evidence not found" });
+
+  if (!(await userCanAccessEvidence(userId, role, item))) {
+    return res.status(403).json({ error: "Access denied: you do not have permission to view this evidence label" });
+  }
+
+  let rawToken: string;
+
+  // Initialize QR token if legacy record or missing
+  if (!item.qrTokenEncrypted || !item.qrTokenHash) {
+    rawToken = generateQRToken();
+    const qrTokenHash = hashQRToken(rawToken);
+    const qrTokenEncrypted = encryptData(rawToken);
+
+    await prisma.evidenceItem.update({
+      where: { id },
+      data: { qrTokenHash, qrTokenEncrypted, qrRotatedAt: new Date() },
+    });
+  } else {
+    try {
+      rawToken = decryptData(item.qrTokenEncrypted);
+    } catch (err) {
+      // In case of decryption error or key update, regenerate
+      rawToken = generateQRToken();
+      const qrTokenHash = hashQRToken(rawToken);
+      const qrTokenEncrypted = encryptData(rawToken);
+
+      await prisma.evidenceItem.update({
+        where: { id },
+        data: { qrTokenHash, qrTokenEncrypted, qrRotatedAt: new Date() },
+      });
+    }
+  }
+
+  const appBaseUrl = process.env.APP_BASE_URL || "http://localhost:5173";
+  const verificationUrl = `${appBaseUrl}/verify/evidence?token=${rawToken}`;
+  const qrSvg = generateQRCodeSVG(verificationUrl, 240);
+  const qrDataUri = generateQRCodeDataURI(verificationUrl, 240);
+
+  const users = await custodianMap([item.currentCustodianId]);
+  const custodian = item.currentCustodianId ? users.get(item.currentCustodianId) ?? null : null;
+
+  return res.json({
+    ok: true,
+    label: {
+      evidenceId: item.id,
+      name: item.name,
+      description: item.description,
+      status: item.status,
+      caseNumber: item.case.caseNumber,
+      caseTitle: item.case.title,
+      currentCustodian: custodian,
+      verificationUrl,
+      qrSvg,
+      qrDataUri,
+      qrRotatedAt: item.qrRotatedAt,
+    },
+  });
+});
+
+// POST /api/evidence/:id/rotate-qr - rotate QR code and invalidate old physical tags
+router.post("/:id/rotate-qr", requireAuth, async (req, res) => {
+  const { sub: userId, role } = req.user!;
+  const { id } = req.params;
+
+  const item = await prisma.evidenceItem.findUnique({
+    where: { id },
+    include: {
+      case: { select: { id: true, caseNumber: true, title: true } },
+    },
+  });
+
+  if (!item) return res.status(404).json({ error: "Evidence not found" });
+
+  if (role !== "ADMIN" && item.currentCustodianId !== userId) {
+    return res.status(403).json({ error: "Only the current custodian or an Admin can rotate the evidence QR code" });
+  }
+
+  const newRawToken = generateQRToken();
+  const qrTokenHash = hashQRToken(newRawToken);
+  const qrTokenEncrypted = encryptData(newRawToken);
+  const now = new Date();
+
+  await prisma.$transaction(async (tx) => {
+    await tx.evidenceItem.update({
+      where: { id },
+      data: {
+        qrTokenHash,
+        qrTokenEncrypted,
+        qrRotatedAt: now,
+      },
+    });
+
+    await recordAudit(
+      {
+        action: "EVIDENCE_QR_ROTATED",
+        actorId: userId,
+        evidenceId: id,
+        caseId: item.caseId,
+        notes: `Physical evidence QR tag rotated for "${item.name}". Previous physical labels invalidated.`,
+        metadata: {
+          evidenceId: id,
+          rotatedAt: now.toISOString(),
+        },
+      },
+      tx
+    );
+  });
+
+  const appBaseUrl = process.env.APP_BASE_URL || "http://localhost:5173";
+  const verificationUrl = `${appBaseUrl}/verify/evidence?token=${newRawToken}`;
+  const qrSvg = generateQRCodeSVG(verificationUrl, 240);
+  const qrDataUri = generateQRCodeDataURI(verificationUrl, 240);
+
+  return res.json({
+    ok: true,
+    message: "QR code rotated successfully. Previous physical labels have been invalidated.",
+    label: {
+      evidenceId: item.id,
+      name: item.name,
+      verificationUrl,
+      qrSvg,
+      qrDataUri,
+      qrRotatedAt: now.toISOString(),
+    },
+  });
 });
 
 // GET /api/evidence/:id - detail, custodian, and complete transfer history

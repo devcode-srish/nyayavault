@@ -3,14 +3,23 @@ import { useParams, Link } from "react-router-dom";
 import { api } from "../lib/api";
 import { PageHeader, Card, Badge } from "../components/ui";
 import CustodyTimeline, { TimelineEvent } from "../components/CustodyTimeline";
+import EvidenceQRLabelModal from "../components/EvidenceQRLabelModal";
+import CustodyReceiptModal from "../components/CustodyReceiptModal";
+import { QrCode, FileCheck2, Printer } from "lucide-react";
+import { useAuth } from "../context/AuthContext";
 
 export default function EvidenceDetail() {
   const { id } = useParams();
+  const { user } = useAuth();
   const [ev, setEv] = useState<any>(null);
   const [canTransfer, setCanTransfer] = useState(false);
   const [people, setPeople] = useState<any[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+
+  // Modal State
+  const [showQRModal, setShowQRModal] = useState(false);
+  const [selectedReceiptTransferId, setSelectedReceiptTransferId] = useState<string | null>(null);
 
   const [toUserId, setToUserId] = useState("");
   const [notes, setNotes] = useState("");
@@ -61,25 +70,41 @@ export default function EvidenceDetail() {
 
   const events: TimelineEvent[] = ev.transfers.map((t: any) => ({
     id: t.id,
-    title: t.fromUser ? "Transferred" : "Logged \u2014 initial custody",
-    detail: t.fromUser ? `${t.fromUser.name} \u2192 ${t.toUser.name}` : `to ${t.toUser.name}`,
+    transferId: t.id,
+    title: t.fromUser ? "Transferred" : "Logged — initial custody",
+    detail: t.fromUser ? `${t.fromUser.name} → ${t.toUser.name}` : `to ${t.toUser.name}`,
     actor: t.fromUser ? t.fromUser.name : t.toUser.name,
     notes: t.notes,
     at: t.transferredAt,
-    tone: "neutral",
+    status: t.status,
+    tone: t.status === "REJECTED" || t.status === "CANCELLED" ? "danger" : t.status === "PENDING" ? "warn" : "neutral",
   }));
+
+  const canRotateQR = user?.role === "ADMIN" || ev.currentCustodianId === user?.id;
 
   return (
     <div>
-      <PageHeader
-        title={ev.name}
-        subtitle={
-          <>
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-vault-800 bg-vault-950/50 px-8 py-6">
+        <div>
+          <h1 className="text-2xl font-bold text-white tracking-tight">{ev.name}</h1>
+          <p className="text-sm text-vault-400 mt-1">
             Case:{" "}
-            <Link to={`/cases/${ev.case.id}`} className="hover:underline">{ev.case.caseNumber}</Link>
-          </>
-        }
-      />
+            <Link to={`/cases/${ev.case.id}`} className="text-vault-200 hover:text-white hover:underline font-mono">
+              {ev.case.caseNumber}
+            </Link>{" "}
+            — {ev.case.title}
+          </p>
+        </div>
+
+        <div className="flex items-center gap-3">
+          <button
+            onClick={() => setShowQRModal(true)}
+            className="flex items-center gap-2 px-4 py-2 bg-vault-800 hover:bg-vault-700 text-vault-100 text-sm font-semibold rounded-lg border border-vault-700 shadow-sm transition"
+          >
+            <QrCode size={16} /> Physical QR Label
+          </button>
+        </div>
+      </div>
       <div className="p-8 space-y-6">
         <div className="grid grid-cols-3 gap-4">
           <Card title="Status"><Badge text={ev.status.replace(/_/g, " ")} /></Card>
@@ -98,7 +123,10 @@ export default function EvidenceDetail() {
         )}
 
         <Card title="Chain of Custody">
-          <CustodyTimeline events={events} />
+          <CustodyTimeline
+            events={events}
+            onViewReceipt={(transferId) => setSelectedReceiptTransferId(transferId)}
+          />
         </Card>
 
         {canTransfer && (
@@ -141,6 +169,23 @@ export default function EvidenceDetail() {
           </Card>
         )}
       </div>
+
+      {/* QR Label Modal */}
+      <EvidenceQRLabelModal
+        evidenceId={id!}
+        isOpen={showQRModal}
+        onClose={() => setShowQRModal(false)}
+        canRotate={canRotateQR}
+      />
+
+      {/* Custody Receipt Modal */}
+      {selectedReceiptTransferId && (
+        <CustodyReceiptModal
+          transferId={selectedReceiptTransferId}
+          isOpen={!!selectedReceiptTransferId}
+          onClose={() => setSelectedReceiptTransferId(null)}
+        />
+      )}
     </div>
   );
 }
