@@ -1,21 +1,34 @@
 import { Router } from "express";
+import { Prisma } from "@prisma/client";
 import { prisma } from "../lib/prisma";
 import { readFile } from "../lib/storage";
 import { sha256Buffer } from "../lib/hash";
 import { recordAudit } from "../lib/audit";
 import { attachmentHeader } from "../lib/http";
 
-/**
- * PUBLIC routes (no login) for secure share links.
- *
- * The link contains only a random 256-bit token. It says nothing about the
- * document, the case, or where the file lives on disk. Links expire, have a
- * download limit, and are refused if the stored file no longer matches its
- * recorded SHA-256.
- */
 const router = Router();
 
-async function findLink(token: string) {
+type ShareLinkWithDoc = Prisma.ShareLinkGetPayload<{
+  include: {
+    createdBy: { select: { name: true } };
+    document: {
+      select: {
+        id: true;
+        name: true;
+        type: true;
+        caseId: true;
+        classification: true;
+        versions: { orderBy: { versionNo: "desc" }; take: 1 };
+      };
+    };
+  };
+}>;
+
+type FindLinkResult =
+  | { status: 404 | 410; error: string }
+  | { link: ShareLinkWithDoc; version: ShareLinkWithDoc["document"]["versions"][0] };
+
+async function findLink(token: string): Promise<FindLinkResult> {
   const link = await prisma.shareLink.findUnique({
     where: { token },
     include: {
@@ -32,14 +45,14 @@ async function findLink(token: string) {
       },
     },
   });
-  if (!link) return { status: 404, error: "This link is not valid." } as const;
-  if (link.expiresAt < new Date()) return { status: 410, error: "This link has expired." } as const;
+  if (!link) return { status: 404, error: "This link is not valid." };
+  if (link.expiresAt < new Date()) return { status: 410, error: "This link has expired." };
   if (link.useCount >= link.maxUses) {
-    return { status: 410, error: "This link has reached its download limit." } as const;
+    return { status: 410, error: "This link has reached its download limit." };
   }
   const version = link.document.versions[0];
-  if (!version) return { status: 404, error: "This link is not valid." } as const;
-  return { link, version } as const;
+  if (!version) return { status: 404, error: "This link is not valid." };
+  return { link, version };
 }
 
 // Metadata only. Viewing this page does not use up a download.

@@ -6,3 +6,4 @@ build/
 storage/
 apps/api/prisma/*.db
 .DS_Store
+*.tsbuildinfo
