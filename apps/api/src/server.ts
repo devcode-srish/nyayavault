@@ -14,6 +14,8 @@ import accessRequestsRoutes from "./routes/accessRequests.routes";
 import notificationsRoutes from "./routes/notifications.routes";
 import evidenceRoutes from "./routes/evidence.routes";
 import shareRoutes from "./routes/share.routes";
+import adminRoutes from "./routes/admin.routes";
+import { startExpiryScheduler } from "./jobs/scheduler";
 
 const app = express();
 
@@ -67,6 +69,7 @@ app.use("/api/access-requests", accessRequestsRoutes);
 app.use("/api/notifications", notificationsRoutes);
 app.use("/api/evidence", evidenceRoutes);
 app.use("/api/share", shareLimiter, shareRoutes);
+app.use("/api/admin", adminRoutes);
 
 // Central error handler
 app.use((err: unknown, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
@@ -79,4 +82,6 @@ const PORT = process.env.PORT ? parseInt(process.env.PORT, 10) : 4000;
 app.listen(PORT, () => {
   // eslint-disable-next-line no-console
   console.log(`NyayaVault API listening on http://localhost:${PORT}`);
+  // Start background scheduler if enabled
+  startExpiryScheduler();
 });
