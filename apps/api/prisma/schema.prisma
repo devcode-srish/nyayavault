@@ -156,6 +156,7 @@ model User {
   documentAccessGranted  DocumentAccess[]  @relation("GrantorUser")
   documentAccessRevoked  DocumentAccess[]  @relation("RevokerUser")
   signatures        DigitalSignature[]
+  signingKeys       UserSigningKey[]
   notifications     Notification[]
   aiQueries         AIQuery[]
   shareLinksCreated ShareLink[]
@@ -370,21 +371,65 @@ model EvidenceTransfer {
   @@index([evidenceId])
 }
 
+model UserSigningKey {
+  id             String             @id @default(cuid())
+  userId         String
+  user           User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  keyId          String             @unique
+  publicKeyPem   String             @db.Text
+  keyFingerprint String             @db.VarChar(64)
+  algorithm      String             @default("ECDSA-P256-SHA256")
+  label          String?
+  isActive       Boolean            @default(true)
+  createdAt      DateTime           @default(now())
+  revokedAt      DateTime?
+
+  signatures     DigitalSignature[]
+
+  @@index([userId, isActive])
+  @@index([keyFingerprint])
+}
+
 model DigitalSignature {
-  id               String          @id @default(cuid())
-  documentId       String
-  document         Document        @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  id                String          @id @default(cuid())
+  documentId        String
+  document          Document        @relation(fields: [documentId], references: [id], onDelete: Cascade)
   documentVersionId String
-  documentVersion  DocumentVersion @relation(fields: [documentVersionId], references: [id], onDelete: Cascade)
-  signerId         String
-  signer           User            @relation(fields: [signerId], references: [id])
-  algorithm        String          @default("RSA-SHA256-PROTOTYPE")
-  signatureValue   String
-  status           SignatureStatus @default(SIGNED)
-  signedAt         DateTime        @default(now())
-  verifiedAt       DateTime?
+  documentVersion   DocumentVersion @relation(fields: [documentVersionId], references: [id], onDelete: Cascade)
+  signerId          String
+  signer            User            @relation(fields: [signerId], references: [id])
+  keyId             String?
+  userSigningKey    UserSigningKey? @relation(fields: [keyId], references: [id], onDelete: SetNull)
+  publicKeyPem      String?         @db.Text
+  keyFingerprint    String?         @db.VarChar(64)
+  certificateNumber String?         @unique
+  challengeNonce    String?         @db.VarChar(64)
+  signedPayloadJson String?         @db.Text
+  algorithm         String          @default("ECDSA-P256-SHA256")
+  signatureValue    String          @db.Text
+  status            SignatureStatus @default(SIGNED)
+  signedAt          DateTime        @default(now())
+  verifiedAt        DateTime?
 
   @@index([documentId])
+  @@index([documentVersionId])
+  @@index([signerId])
+  @@index([keyFingerprint])
+}
+
+model SigningChallenge {
+  id                String    @id @default(cuid())
+  nonce             String    @unique @db.VarChar(64)
+  userId            String
+  documentId        String
+  documentVersionId String
+  versionSha256     String    @db.VarChar(64)
+  issuedAt          DateTime  @default(now())
+  expiresAt         DateTime
+  consumedAt        DateTime?
+
+  @@index([nonce, userId])
+  @@index([expiresAt])
 }
 
 model AIQuery {

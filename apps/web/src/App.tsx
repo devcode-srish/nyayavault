@@ -17,6 +17,7 @@ import Notifications from "./pages/Notifications";
 import Evidence from "./pages/Evidence";
 import EvidenceDetail from "./pages/EvidenceDetail";
 import SharePublic from "./pages/SharePublic";
+import Signatures from "./pages/Signatures";
 
 export default function App() {
   return (
@@ -42,7 +43,7 @@ export default function App() {
             <Route path="/ai" element={<ComingSoon title="AI Case Assistant" phase="Phase 5" />} />
             <Route path="/audit" element={<Audit />} />
             <Route path="/access-requests" element={<AccessRequests />} />
-            <Route path="/signatures" element={<ComingSoon title="Signatures" phase="Phase 4" />} />
+            <Route path="/signatures" element={<Signatures />} />
             <Route path="/notifications" element={<Notifications />} />
             <Route path="/users" element={<UsersPage />} />
             <Route path="/security" element={<ComingSoon title="Security Center" phase="Phase 4" />} />
