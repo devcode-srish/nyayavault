@@ -16,6 +16,7 @@ import evidenceRoutes from "./routes/evidence.routes";
 import shareRoutes from "./routes/share.routes";
 import adminRoutes from "./routes/admin.routes";
 import signaturesRoutes from "./routes/signatures.routes";
+import integrityRoutes from "./routes/integrity.routes";
 import { startExpiryScheduler } from "./jobs/scheduler";
 
 const app = express();
@@ -72,6 +73,7 @@ app.use("/api/evidence", evidenceRoutes);
 app.use("/api/share", shareLimiter, shareRoutes);
 app.use("/api/admin", adminRoutes);
 app.use("/api/signatures", signaturesRoutes);
+app.use("/api/integrity", integrityRoutes);
 
 // Central error handler
 app.use((err: unknown, _req: express.Request, res: express.Response, _next: express.NextFunction) => {

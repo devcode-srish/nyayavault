@@ -42,6 +42,21 @@ enum IntegrityStatus {
   MISMATCH
 }
 
+enum StorageScanStatus {
+  IN_PROGRESS
+  COMPLETED
+  FAILED
+  CANCELLED
+}
+
+enum FindingStatus {
+  VERIFIED
+  MISMATCH
+  MISSING
+  UNREADABLE
+  ERROR
+}
+
 enum SignatureStatus {
   UNSIGNED
   SIGNED
@@ -163,6 +178,7 @@ model User {
   evidenceTransfersFrom EvidenceTransfer[] @relation("TransferFrom")
   evidenceTransfersTo   EvidenceTransfer[] @relation("TransferTo")
   timelineEvents    InvestigationTimelineEvent[]
+  storageScanRuns   StorageScanRun[]
 
   @@index([role])
 }
@@ -194,6 +210,7 @@ model Case {
   evidenceItems      EvidenceItem[]
   timelineEvents     InvestigationTimelineEvent[]
   aiQueries          AIQuery[]
+  storageScanRuns    StorageScanRun[]
 
   @@index([status])
 }
@@ -226,13 +243,14 @@ model Document {
   createdAt        DateTime        @default(now())
   updatedAt        DateTime        @updatedAt
 
-  versions       DocumentVersion[]
-  accessGrants   DocumentAccess[]
-  accessRequests AccessRequest[]
-  signatures     DigitalSignature[]
-  auditLogs      AuditLog[]
+  versions          DocumentVersion[]
+  accessGrants      DocumentAccess[]
+  accessRequests    AccessRequest[]
+  signatures        DigitalSignature[]
+  auditLogs         AuditLog[]
   extractedEntities ExtractedEntity[]
-  shareLinks     ShareLink[]
+  shareLinks        ShareLink[]
+  scanFindings      StorageScanFinding[]
 
   @@index([caseId])
   @@index([classification])
@@ -253,7 +271,8 @@ model DocumentVersion {
   createdAt     DateTime @default(now())
   notes         String?
 
-  signatures DigitalSignature[]
+  signatures   DigitalSignature[]
+  scanFindings StorageScanFinding[]
 
   @@unique([documentId, versionNo])
   @@index([documentId])
@@ -507,4 +526,59 @@ model ShareLink {
 
   @@index([tokenHash])
   @@index([documentId])
+}
+
+model StorageScanRun {
+  id                String            @id @default(cuid())
+  initiatedById     String
+  initiatedBy       User              @relation(fields: [initiatedById], references: [id])
+  caseId            String?
+  case              Case?             @relation(fields: [caseId], references: [id], onDelete: SetNull)
+  status            StorageScanStatus @default(IN_PROGRESS)
+  totalVersions     Int               @default(0)
+  processedVersions Int               @default(0)
+  verifiedCount     Int               @default(0)
+  mismatchCount     Int               @default(0)
+  missingCount      Int               @default(0)
+  unreadableCount   Int               @default(0)
+  errorCount        Int               @default(0)
+  startedAt         DateTime          @default(now())
+  completedAt       DateTime?
+  heartbeatAt       DateTime          @default(now())
+  elapsedMs         Int?
+  errorMessage      String?
+
+  findings          StorageScanFinding[]
+
+  @@index([initiatedById])
+  @@index([caseId])
+  @@index([startedAt])
+  @@index([status])
+}
+
+model StorageScanFinding {
+  id                String           @id @default(cuid())
+  scanRunId         String
+  scanRun           StorageScanRun   @relation(fields: [scanRunId], references: [id], onDelete: Cascade)
+  documentId        String?
+  document          Document?        @relation(fields: [documentId], references: [id], onDelete: SetNull)
+  documentVersionId String?
+  documentVersion   DocumentVersion? @relation(fields: [documentVersionId], references: [id], onDelete: SetNull)
+  caseId            String?
+  documentName      String
+  versionNo         Int
+  originalName      String
+  sizeBytes         Int
+  status            FindingStatus
+  expectedSha256    String           @db.VarChar(64)
+  actualSha256      String?          @db.VarChar(64)
+  reason            String?
+  scannedAt         DateTime         @default(now())
+
+  @@index([scanRunId])
+  @@index([documentId])
+  @@index([documentVersionId])
+  @@index([caseId])
+  @@index([status])
+  @@index([scannedAt])
 }

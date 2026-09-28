@@ -41,7 +41,7 @@ const NAV_ITEMS: NavItem[] = [
   { to: "/signatures", label: "Signatures", icon: PenTool, roles: ["SENIOR_OFFICER", "LEGAL_OFFICER"] },
   { to: "/notifications", label: "Notifications", icon: Bell, roles: ALL },
   { to: "/users", label: "Users", icon: Users, roles: ["ADMIN"] },
-  { to: "/security", label: "Security", icon: ShieldAlert, roles: ["ADMIN"] },
+  { to: "/security", label: "Security", icon: ShieldAlert, roles: ["ADMIN", "SENIOR_OFFICER", "INVESTIGATING_OFFICER"] },
   { to: "/settings", label: "Settings", icon: Settings, roles: ALL },
 ];
 

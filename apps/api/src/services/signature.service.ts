@@ -97,7 +97,7 @@ export async function registerUserSigningKey(
   }
 
   const keyFingerprint = computeKeyFingerprint(normalizedPem);
-  const keyId = `KEY-${userId.slice(-6)}-${keyFingerprint.slice(0, 8)}`.toUpperCase();
+  const keyId = `KEY-${userId.slice(-6)}-${keyFingerprint.slice(0, 8)}-${Date.now().toString(36).toUpperCase()}`;
 
   const userSigningKey = await prisma.userSigningKey.create({
     data: {
