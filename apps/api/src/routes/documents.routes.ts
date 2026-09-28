@@ -1,5 +1,6 @@
 import { Router, Response } from "express";
 import crypto from "crypto";
+import argon2 from "argon2";
 import { z } from "zod";
 import { requireAuth, requireRole } from "../middleware/auth";
 import { prisma } from "../lib/prisma";
@@ -393,16 +394,19 @@ router.post("/:id/verify-integrity", requireAuth, async (req, res) => {
 const shareSchema = z.object({
   expiresInHours: z.number().int().min(1).max(168).default(24),
   maxUses: z.number().int().min(1).max(10).default(1),
+  pin: z.string().trim().regex(/^\d{4,8}$/, "PIN must be between 4 and 8 digits").optional(),
 });
 
-// POST /api/documents/:id/share - create an expiring, limited-use link.
+// POST /api/documents/:id/share - create an expiring, limited-use link with optional PIN and hashed-only token storage.
 router.post("/:id/share", requireAuth, requireRole(...UPLOAD_ROLES), async (req, res) => {
   const { sub: userId, role } = req.user!;
   const { id } = req.params;
 
   const parsed = shareSchema.safeParse(req.body ?? {});
-  if (!parsed.success) return res.status(400).json({ error: "Invalid share settings" });
-  const { expiresInHours, maxUses } = parsed.data;
+  if (!parsed.success) {
+    return res.status(400).json({ error: "Invalid share settings", details: parsed.error.flatten() });
+  }
+  const { expiresInHours, maxUses, pin } = parsed.data;
 
   const document = await prisma.document.findUnique({ where: { id } });
   if (!document) return res.status(404).json({ error: "Document not found" });
@@ -417,10 +421,22 @@ router.post("/:id/share", requireAuth, requireRole(...UPLOAD_ROLES), async (req,
     });
   }
 
-  const token = crypto.randomBytes(32).toString("hex");
+  const rawToken = crypto.randomBytes(32).toString("hex");
+  const tokenHash = crypto.createHash("sha256").update(rawToken).digest("hex");
+  const pinHash = pin ? await argon2.hash(pin) : null;
   const expiresAt = new Date(Date.now() + expiresInHours * 60 * 60 * 1000);
+
+  // Store hashed-only representation in database. Plaintext token is null.
   const link = await prisma.shareLink.create({
-    data: { documentId: id, token, createdById: userId, expiresAt, maxUses },
+    data: {
+      documentId: id,
+      token: null,
+      tokenHash,
+      pinHash,
+      createdById: userId,
+      expiresAt,
+      maxUses,
+    },
   });
 
   await recordAudit({
@@ -428,12 +444,58 @@ router.post("/:id/share", requireAuth, requireRole(...UPLOAD_ROLES), async (req,
     actorId: userId,
     documentId: id,
     caseId: document.caseId,
-    notes: `Share link created (expires in ${expiresInHours}h, max ${maxUses} download${maxUses === 1 ? "" : "s"})`,
+    notes: `Share link created (expires in ${expiresInHours}h, max ${maxUses} download${maxUses === 1 ? "" : "s"}${pin ? ", PIN protected" : ""})`,
   });
 
   return res.status(201).json({
-    share: { id: link.id, token, path: `/share/${token}`, expiresAt, maxUses },
+    share: {
+      id: link.id,
+      token: rawToken,
+      path: `/share/${rawToken}`,
+      expiresAt,
+      maxUses,
+      hasPin: !!pin,
+    },
   });
+});
+
+// POST /api/documents/:id/shares/:shareId/revoke - revoke a share link
+router.post("/:id/shares/:shareId/revoke", requireAuth, requireRole(...UPLOAD_ROLES), async (req, res) => {
+  const { sub: userId, role } = req.user!;
+  const { id: documentId, shareId } = req.params;
+
+  const link = await prisma.shareLink.findUnique({
+    where: { id: shareId },
+    include: { document: { select: { id: true, caseId: true } } },
+  });
+
+  if (!link || link.documentId !== documentId) {
+    return res.status(404).json({ error: "Share link not found" });
+  }
+
+  const seeAll = role === "ADMIN" || role === "SENIOR_OFFICER";
+  if (!seeAll && link.createdById !== userId) {
+    return res.status(403).json({ error: "You do not have permission to revoke this share link" });
+  }
+
+  if (link.isRevoked) {
+    return res.status(409).json({ error: "Share link is already revoked" });
+  }
+
+  await prisma.shareLink.update({
+    where: { id: shareId },
+    data: { isRevoked: true },
+  });
+
+  await recordAudit({
+    action: "DOCUMENT_SHARED",
+    actorId: userId,
+    documentId: link.documentId,
+    caseId: link.document.caseId,
+    notes: "Share link revoked",
+  });
+
+  return res.json({ ok: true, isRevoked: true });
 });
 
 // GET /api/documents/:id/shares - links for this document. Admins and Senior
@@ -460,13 +522,21 @@ router.get("/:id/shares", requireAuth, requireRole(...UPLOAD_ROLES), async (req,
   return res.json({
     shares: links.map((l) => ({
       id: l.id,
-      path: `/share/${l.token}`,
+      path: l.token ? `/share/${l.token}` : undefined,
       createdBy: l.createdBy.name,
       createdAt: l.createdAt,
       expiresAt: l.expiresAt,
       maxUses: l.maxUses,
       useCount: l.useCount,
-      status: l.expiresAt < now ? "EXPIRED" : l.useCount >= l.maxUses ? "USED UP" : "ACTIVE",
+      hasPin: !!l.pinHash,
+      isRevoked: l.isRevoked,
+      status: l.isRevoked
+        ? "REVOKED"
+        : l.expiresAt < now
+        ? "EXPIRED"
+        : l.useCount >= l.maxUses
+        ? "USED UP"
+        : "ACTIVE",
     })),
   });
 });

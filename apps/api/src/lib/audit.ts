@@ -1,8 +1,9 @@
-import { AuditAction, Prisma } from "@prisma/client";
+import { AuditAction, AuditOutcome, Prisma } from "@prisma/client";
 import { prisma } from "./prisma";
 
 export async function recordAudit(params: {
   action: AuditAction;
+  outcome?: AuditOutcome;
   actorId?: string | null;
   documentId?: string | null;
   evidenceId?: string | null;
@@ -14,6 +15,7 @@ export async function recordAudit(params: {
   return prisma.auditLog.create({
     data: {
       action: params.action,
+      outcome: params.outcome,
       actorId: params.actorId ?? undefined,
       documentId: params.documentId ?? undefined,
       evidenceId: params.evidenceId ?? undefined,

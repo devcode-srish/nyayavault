@@ -449,7 +449,7 @@ model ShareLink {
   id           String    @id @default(cuid())
   documentId   String
   document     Document  @relation(fields: [documentId], references: [id], onDelete: Cascade)
-  token        String    @unique
+  token        String?   @unique
   tokenHash    String?   @unique @db.VarChar(64)
   pinHash      String?
   isRevoked    Boolean   @default(false)

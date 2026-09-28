@@ -1,6 +1,6 @@
-import { useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
-import { ShieldCheck } from "lucide-react";
+import { ShieldCheck, Lock } from "lucide-react";
 import { api } from "../lib/api";
 
 function formatSize(bytes: number) {
@@ -18,20 +18,56 @@ export default function SharePublic() {
   const [busy, setBusy] = useState(false);
   const [dlError, setDlError] = useState<string | null>(null);
   const [downloaded, setDownloaded] = useState(false);
+  const [pinRequired, setPinRequired] = useState(false);
+  const [enteredPin, setEnteredPin] = useState("");
+  const [pinError, setPinError] = useState<string | null>(null);
+
+  function fetchMetadata(pin?: string) {
+    setLoading(true);
+    setPinError(null);
+    const headers: Record<string, string> = {};
+    if (pin) headers["x-share-pin"] = pin;
+
+    api
+      .get(`/share/${token}`, { headers })
+      .then(({ data }) => {
+        setInfo(data.share);
+        setPinRequired(false);
+      })
+      .catch((e) => {
+        const resData = e?.response?.data;
+        if (e?.response?.status === 401 && resData?.requiresPin) {
+          setPinRequired(true);
+          if (pin) setPinError("Incorrect PIN. Please try again.");
+        } else {
+          setError(resData?.error || "This link is not valid.");
+        }
+      })
+      .finally(() => setLoading(false));
+  }
 
   useEffect(() => {
-    api
-      .get(`/share/${token}`)
-      .then(({ data }) => setInfo(data.share))
-      .catch((e) => setError(e?.response?.data?.error || "This link is not valid."))
-      .finally(() => setLoading(false));
+    fetchMetadata();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [token]);
+
+  function handlePinSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    if (!enteredPin) return;
+    fetchMetadata(enteredPin);
+  }
 
   async function download() {
     setBusy(true);
     setDlError(null);
     try {
-      const res = await api.get(`/share/${token}/download`, { responseType: "blob" });
+      const headers: Record<string, string> = {};
+      if (enteredPin) headers["x-share-pin"] = enteredPin;
+
+      const res = await api.get(`/share/${token}/download`, {
+        headers,
+        responseType: "blob",
+      });
       const url = window.URL.createObjectURL(new Blob([res.data]));
       const a = document.createElement("a");
       a.href = url;
@@ -68,7 +104,41 @@ export default function SharePublic() {
           {loading && <p className="text-vault-400 text-sm">Checking link...</p>}
           {error && <p className="text-red-400 text-sm">{error}</p>}
 
-          {info && (
+          {pinRequired && !loading && !error && (
+            <div className="space-y-4">
+              <div className="flex items-center gap-2 text-vault-300">
+                <Lock size={20} />
+                <h2 className="text-sm font-semibold text-white">PIN Protection Required</h2>
+              </div>
+              <p className="text-xs text-vault-400">
+                This secure share link requires a security PIN set by the sender to unlock document details and download access.
+              </p>
+              <form onSubmit={handlePinSubmit} className="space-y-3">
+                <div>
+                  <label className="block text-xs text-vault-400 mb-1">Enter Security PIN</label>
+                  <input
+                    type="password"
+                    maxLength={8}
+                    value={enteredPin}
+                    onChange={(e) => setEnteredPin(e.target.value)}
+                    placeholder="Enter PIN"
+                    className="w-full rounded-lg bg-vault-950 border border-vault-700 px-3 py-2 text-sm text-white focus:outline-none focus:border-vault-500"
+                    autoFocus
+                  />
+                </div>
+                {pinError && <p className="text-xs text-red-400">{pinError}</p>}
+                <button
+                  type="submit"
+                  disabled={!enteredPin || loading}
+                  className="w-full rounded-lg bg-vault-500 hover:bg-vault-400 transition text-white text-sm font-medium py-2 disabled:opacity-50"
+                >
+                  Unlock Document
+                </button>
+              </form>
+            </div>
+          )}
+
+          {info && !pinRequired && (
             <>
               <p className="text-white font-medium">{info.name}</p>
               <p className="text-xs text-vault-400 mt-1">
