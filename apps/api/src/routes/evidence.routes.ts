@@ -3,8 +3,8 @@ import { z } from "zod";
 import { requireAuth, requireRole } from "../middleware/auth";
 import { prisma } from "../lib/prisma";
 import { accessibleCaseIds, userCanAccessCase } from "../lib/access";
-import { recordAudit } from "../lib/audit";
 import { notifyUsers } from "../lib/notify";
+import { PackageCondition } from "@prisma/client";
 
 const router = Router();
 
@@ -36,6 +36,7 @@ async function custodianMap(ids: Array<string | null>) {
   return new Map(users.map((u) => [u.id, u]));
 }
 
+// GET /api/evidence - list visible evidence items
 router.get("/", requireAuth, async (req, res) => {
   const { sub: userId, role } = req.user!;
 
@@ -69,6 +70,254 @@ router.get("/", requireAuth, async (req, res) => {
   });
 });
 
+// GET /api/evidence/transfers/pending - list pending custody transfers for the caller
+router.get("/transfers/pending", requireAuth, async (req, res) => {
+  const { sub: userId, role } = req.user!;
+
+  let where: any = { status: "PENDING" };
+  if (role !== "ADMIN") {
+    where = {
+      status: "PENDING",
+      OR: [{ toUserId: userId }, { fromUserId: userId }],
+    };
+  }
+
+  const transfers = await prisma.evidenceTransfer.findMany({
+    where,
+    orderBy: { transferredAt: "desc" },
+    include: {
+      evidence: {
+        select: {
+          id: true,
+          name: true,
+          status: true,
+          case: { select: { id: true, caseNumber: true, title: true } },
+        },
+      },
+      fromUser: { select: { id: true, name: true, role: true } },
+      toUser: { select: { id: true, name: true, role: true } },
+    },
+  });
+
+  return res.json({ transfers });
+});
+
+// POST /api/evidence/transfers/:transferId/accept - recipient explicitly accepts custody
+router.post("/transfers/:transferId/accept", requireAuth, async (req, res) => {
+  const { sub: userId, role } = req.user!;
+  const { transferId } = req.params;
+
+  const transfer = await prisma.evidenceTransfer.findUnique({
+    where: { id: transferId },
+    include: {
+      evidence: { select: { id: true, name: true, caseId: true, currentCustodianId: true } },
+      fromUser: { select: { id: true, name: true } },
+    },
+  });
+
+  if (!transfer) return res.status(404).json({ error: "Transfer record not found" });
+
+  if (role !== "ADMIN" && transfer.toUserId !== userId) {
+    return res.status(403).json({ error: "Only the designated recipient (or an Admin) can accept this transfer" });
+  }
+
+  if (transfer.status !== "PENDING") {
+    return res.status(409).json({ error: `Transfer is no longer pending (current status: ${transfer.status})` });
+  }
+
+  const now = new Date();
+
+  try {
+    await prisma.$transaction(async (tx) => {
+      // 1. Atomic guard: transition transfer status from PENDING to ACCEPTED
+      const updated = await tx.evidenceTransfer.updateMany({
+        where: { id: transferId, status: "PENDING" },
+        data: {
+          status: "ACCEPTED",
+          decidedAt: now,
+        },
+      });
+
+      if (updated.count === 0) {
+        throw new Error("ALREADY_DECIDED");
+      }
+
+      // 2. Transfer the actual custody to recipient
+      await tx.evidenceItem.update({
+        where: { id: transfer.evidenceId },
+        data: {
+          currentCustodianId: transfer.toUserId,
+        },
+      });
+
+      // 3. Transactionally consistent audit log creation
+      await tx.auditLog.create({
+        data: {
+          action: "EVIDENCE_TRANSFERRED",
+          actorId: userId,
+          evidenceId: transfer.evidenceId,
+          caseId: transfer.evidence.caseId,
+          targetUserId: transfer.toUserId,
+          notes: `Custody of "${transfer.evidence.name}" accepted by recipient. Package condition: ${transfer.packageCondition}${transfer.sealNumber ? ", Seal: " + transfer.sealNumber : ""}`,
+        },
+      });
+    });
+  } catch (err) {
+    if (err instanceof Error && err.message === "ALREADY_DECIDED") {
+      return res.status(409).json({ error: "Transfer has already been accepted, rejected, or cancelled" });
+    }
+    throw err;
+  }
+
+  if (transfer.fromUserId) {
+    await notifyUsers([transfer.fromUserId], {
+      type: "GENERAL",
+      title: "Custody transfer accepted",
+      message: `Custody of "${transfer.evidence.name}" has been accepted by the recipient.`,
+    });
+  }
+
+  return res.json({ ok: true, status: "ACCEPTED", transferredAt: now });
+});
+
+const rejectSchema = z.object({
+  reason: z.string().trim().max(500).optional(),
+});
+
+// POST /api/evidence/transfers/:transferId/reject - recipient rejects custody transfer
+router.post("/transfers/:transferId/reject", requireAuth, async (req, res) => {
+  const { sub: userId, role } = req.user!;
+  const { transferId } = req.params;
+
+  const parsed = rejectSchema.safeParse(req.body ?? {});
+  if (!parsed.success) {
+    return res.status(400).json({ error: "Invalid rejection parameters" });
+  }
+
+  const transfer = await prisma.evidenceTransfer.findUnique({
+    where: { id: transferId },
+    include: {
+      evidence: { select: { id: true, name: true, caseId: true } },
+    },
+  });
+
+  if (!transfer) return res.status(404).json({ error: "Transfer record not found" });
+
+  if (role !== "ADMIN" && transfer.toUserId !== userId) {
+    return res.status(403).json({ error: "Only the designated recipient (or an Admin) can reject this transfer" });
+  }
+
+  if (transfer.status !== "PENDING") {
+    return res.status(409).json({ error: `Transfer is no longer pending (current status: ${transfer.status})` });
+  }
+
+  const now = new Date();
+  const reason = parsed.data.reason || "Rejected by designated recipient";
+
+  try {
+    await prisma.$transaction(async (tx) => {
+      const updated = await tx.evidenceTransfer.updateMany({
+        where: { id: transferId, status: "PENDING" },
+        data: {
+          status: "REJECTED",
+          rejectionReason: reason,
+          decidedAt: now,
+        },
+      });
+
+      if (updated.count === 0) {
+        throw new Error("ALREADY_DECIDED");
+      }
+
+      await tx.auditLog.create({
+        data: {
+          action: "EVIDENCE_TRANSFERRED",
+          actorId: userId,
+          evidenceId: transfer.evidenceId,
+          caseId: transfer.evidence.caseId,
+          targetUserId: transfer.fromUserId ?? undefined,
+          notes: `Custody transfer of "${transfer.evidence.name}" rejected: ${reason}`,
+        },
+      });
+    });
+  } catch (err) {
+    if (err instanceof Error && err.message === "ALREADY_DECIDED") {
+      return res.status(409).json({ error: "Transfer has already been decided" });
+    }
+    throw err;
+  }
+
+  if (transfer.fromUserId) {
+    await notifyUsers([transfer.fromUserId], {
+      type: "GENERAL",
+      title: "Custody transfer rejected",
+      message: `Custody transfer of "${transfer.evidence.name}" was rejected: ${reason}`,
+    });
+  }
+
+  return res.json({ ok: true, status: "REJECTED" });
+});
+
+// POST /api/evidence/transfers/:transferId/cancel - sender cancels pending transfer
+router.post("/transfers/:transferId/cancel", requireAuth, async (req, res) => {
+  const { sub: userId, role } = req.user!;
+  const { transferId } = req.params;
+
+  const transfer = await prisma.evidenceTransfer.findUnique({
+    where: { id: transferId },
+    include: {
+      evidence: { select: { id: true, name: true, caseId: true } },
+    },
+  });
+
+  if (!transfer) return res.status(404).json({ error: "Transfer record not found" });
+
+  if (role !== "ADMIN" && transfer.fromUserId !== userId) {
+    return res.status(403).json({ error: "Only the initiating sender (or an Admin) can cancel this transfer" });
+  }
+
+  if (transfer.status !== "PENDING") {
+    return res.status(409).json({ error: `Transfer is no longer pending (current status: ${transfer.status})` });
+  }
+
+  const now = new Date();
+
+  try {
+    await prisma.$transaction(async (tx) => {
+      const updated = await tx.evidenceTransfer.updateMany({
+        where: { id: transferId, status: "PENDING" },
+        data: {
+          status: "CANCELLED",
+          decidedAt: now,
+        },
+      });
+
+      if (updated.count === 0) {
+        throw new Error("ALREADY_DECIDED");
+      }
+
+      await tx.auditLog.create({
+        data: {
+          action: "EVIDENCE_TRANSFERRED",
+          actorId: userId,
+          evidenceId: transfer.evidenceId,
+          caseId: transfer.evidence.caseId,
+          targetUserId: transfer.toUserId,
+          notes: `Custody transfer of "${transfer.evidence.name}" cancelled by sender`,
+        },
+      });
+    });
+  } catch (err) {
+    if (err instanceof Error && err.message === "ALREADY_DECIDED") {
+      return res.status(409).json({ error: "Transfer has already been decided" });
+    }
+    throw err;
+  }
+
+  return res.json({ ok: true, status: "CANCELLED" });
+});
+
+// GET /api/evidence/:id - detail, custodian, and complete transfer history
 router.get("/:id", requireAuth, async (req, res) => {
   const { sub: userId, role } = req.user!;
   const item = await prisma.evidenceItem.findUnique({
@@ -78,8 +327,8 @@ router.get("/:id", requireAuth, async (req, res) => {
       transfers: {
         orderBy: { transferredAt: "asc" },
         include: {
-          fromUser: { select: { name: true, role: true } },
-          toUser: { select: { name: true, role: true } },
+          fromUser: { select: { id: true, name: true, role: true } },
+          toUser: { select: { id: true, name: true, role: true } },
         },
       },
     },
@@ -91,12 +340,18 @@ router.get("/:id", requireAuth, async (req, res) => {
   }
 
   const users = await custodianMap([item.currentCustodianId]);
+  const pendingTransfer = item.transfers.find((t) => t.status === "PENDING") || null;
+
   return res.json({
     evidence: {
       ...item,
       currentCustodian: item.currentCustodianId ? users.get(item.currentCustodianId) ?? null : null,
     },
-    canTransfer: role === "ADMIN" || item.currentCustodianId === userId,
+    pendingTransfer,
+    canTransfer: (role === "ADMIN" || item.currentCustodianId === userId) && !pendingTransfer,
+    canAccept: pendingTransfer ? (role === "ADMIN" || pendingTransfer.toUserId === userId) : false,
+    canReject: pendingTransfer ? (role === "ADMIN" || pendingTransfer.toUserId === userId) : false,
+    canCancel: pendingTransfer ? (role === "ADMIN" || pendingTransfer.fromUserId === userId) : false,
   });
 });
 
@@ -106,8 +361,7 @@ const createSchema = z.object({
   description: z.string().trim().max(1000).optional(),
 });
 
-// Logging a new evidence item starts its chain of custody: the first
-// transfer record goes from "nobody" to the person who logged it.
+// POST /api/evidence - Log a new evidence item
 router.post(
   "/",
   requireAuth,
@@ -126,25 +380,37 @@ router.post(
     const caseExists = await prisma.case.findUnique({ where: { id: caseId } });
     if (!caseExists) return res.status(404).json({ error: "Case not found" });
 
-    const item = await prisma.evidenceItem.create({
-      data: {
-        caseId,
-        name,
-        description,
-        status: "COLLECTED",
-        currentCustodianId: userId,
-        transfers: {
-          create: { fromUserId: null, toUserId: userId, notes: "Evidence logged - initial custody" },
+    let item: any;
+    await prisma.$transaction(async (tx) => {
+      item = await tx.evidenceItem.create({
+        data: {
+          caseId,
+          name,
+          description,
+          status: "COLLECTED",
+          currentCustodianId: userId,
+          transfers: {
+            create: {
+              fromUserId: null,
+              toUserId: userId,
+              status: "COMPLETED",
+              packageCondition: "SEALED_INTACT",
+              notes: "Evidence logged - initial custody",
+            },
+          },
         },
-      },
-    });
+      });
 
-    await recordAudit({
-      action: "EVIDENCE_TRANSFERRED",
-      actorId: userId,
-      caseId,
-      targetUserId: userId,
-      notes: `Evidence "${name}" logged (initial custody)`,
+      await tx.auditLog.create({
+        data: {
+          action: "EVIDENCE_TRANSFERRED",
+          actorId: userId,
+          evidenceId: item.id,
+          caseId,
+          targetUserId: userId,
+          notes: `Evidence "${name}" logged (initial custody)`,
+        },
+      });
     });
 
     return res.status(201).json({ evidence: item });
@@ -153,16 +419,25 @@ router.post(
 
 const transferSchema = z.object({
   toUserId: z.string().min(1),
-  notes: z.string().trim().max(300).optional(),
+  purpose: z.string().trim().max(300).optional(),
+  sealNumber: z.string().trim().max(100).optional(),
+  packageCondition: z
+    .enum(["SEALED_INTACT", "SEAL_BROKEN", "DAMAGED", "OPENED_FOR_EXAMINATION", "RE_SEALED"])
+    .default("SEALED_INTACT"),
+  location: z.string().trim().max(200).optional(),
+  notes: z.string().trim().max(500).optional(),
 });
 
+// POST /api/evidence/:id/transfer - initiate a two-step custody transfer
 router.post("/:id/transfer", requireAuth, async (req, res) => {
   const { sub: userId, role } = req.user!;
   const { id } = req.params;
 
   const parsed = transferSchema.safeParse(req.body);
-  if (!parsed.success) return res.status(400).json({ error: "Invalid request body" });
-  const { toUserId, notes } = parsed.data;
+  if (!parsed.success) {
+    return res.status(400).json({ error: "Invalid request body", details: parsed.error.flatten() });
+  }
+  const { toUserId, purpose, sealNumber, packageCondition, location, notes } = parsed.data;
 
   const item = await prisma.evidenceItem.findUnique({ where: { id } });
   if (!item) return res.status(404).json({ error: "Evidence not found" });
@@ -170,39 +445,74 @@ router.post("/:id/transfer", requireAuth, async (req, res) => {
   if (!(await userCanAccessEvidence(userId, role, item))) {
     return res.status(403).json({ error: "You do not have access to this evidence item" });
   }
-  // Only the person who currently holds the item can hand it over.
+
+  // Only the current custodian (or Admin) can initiate a transfer.
   if (role !== "ADMIN" && item.currentCustodianId !== userId) {
     return res.status(403).json({ error: "Only the current custodian (or an Admin) can transfer this evidence" });
   }
 
-  const target = await prisma.user.findUnique({ where: { id: toUserId } });
-  if (!target || !target.isActive) return res.status(400).json({ error: "Invalid recipient" });
-  if (target.id === item.currentCustodianId) {
+  // State-transition invariant: Prevent self-transfer even for Admin
+  if (toUserId === item.currentCustodianId) {
     return res.status(400).json({ error: "This evidence is already in that person's custody" });
   }
 
-  await prisma.$transaction([
-    prisma.evidenceTransfer.create({
-      data: { evidenceId: id, fromUserId: item.currentCustodianId, toUserId: target.id, notes },
-    }),
-    prisma.evidenceItem.update({ where: { id }, data: { currentCustodianId: target.id } }),
-  ]);
+  const target = await prisma.user.findUnique({ where: { id: toUserId } });
+  if (!target || !target.isActive) {
+    return res.status(400).json({ error: "Invalid recipient" });
+  }
 
-  await recordAudit({
-    action: "EVIDENCE_TRANSFERRED",
-    actorId: userId,
-    caseId: item.caseId,
-    targetUserId: target.id,
-    notes: `"${item.name}" transferred${notes ? ": " + notes : ""}`,
-  });
+  let transfer: any;
+  try {
+    await prisma.$transaction(async (tx) => {
+      // Prevent multiple simultaneous pending transfers for the same evidence item
+      const existingPending = await tx.evidenceTransfer.findFirst({
+        where: { evidenceId: id, status: "PENDING" },
+      });
+      if (existingPending) {
+        throw new Error("ALREADY_PENDING");
+      }
+
+      // Create the transfer record in PENDING status.
+      // Note: item.currentCustodianId is deliberately NOT changed yet (Option A Two-Step Handshake).
+      transfer = await tx.evidenceTransfer.create({
+        data: {
+          evidenceId: id,
+          fromUserId: item.currentCustodianId,
+          toUserId: target.id,
+          status: "PENDING",
+          purpose,
+          sealNumber,
+          packageCondition: packageCondition as PackageCondition,
+          location,
+          notes,
+        },
+      });
+
+      await tx.auditLog.create({
+        data: {
+          action: "EVIDENCE_TRANSFERRED",
+          actorId: userId,
+          evidenceId: id,
+          caseId: item.caseId,
+          targetUserId: target.id,
+          notes: `Custody transfer of "${item.name}" initiated to ${target.name} (pending acceptance). Seal: ${sealNumber || "N/A"}, Condition: ${packageCondition}`,
+        },
+      });
+    });
+  } catch (err) {
+    if (err instanceof Error && err.message === "ALREADY_PENDING") {
+      return res.status(409).json({ error: "There is already an active pending transfer for this evidence item" });
+    }
+    throw err;
+  }
 
   await notifyUsers([target.id], {
     type: "GENERAL",
-    title: "Evidence transferred to you",
-    message: `Custody of "${item.name}" has been transferred to you.`,
+    title: "Evidence custody transfer pending",
+    message: `Custody transfer of "${item.name}" has been initiated for you to accept or reject.`,
   });
 
-  return res.json({ ok: true });
+  return res.status(201).json({ ok: true, transfer });
 });
 
 export default router;

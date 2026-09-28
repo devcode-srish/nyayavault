@@ -5,6 +5,7 @@ export async function recordAudit(params: {
   action: AuditAction;
   actorId?: string | null;
   documentId?: string | null;
+  evidenceId?: string | null;
   caseId?: string | null;
   targetUserId?: string | null;
   notes?: string | null;
@@ -15,6 +16,7 @@ export async function recordAudit(params: {
       action: params.action,
       actorId: params.actorId ?? undefined,
       documentId: params.documentId ?? undefined,
+      evidenceId: params.evidenceId ?? undefined,
       caseId: params.caseId ?? undefined,
       targetUserId: params.targetUserId ?? undefined,
       notes: params.notes ?? undefined,
