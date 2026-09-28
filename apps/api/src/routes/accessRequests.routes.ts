@@ -150,10 +150,14 @@ router.post("/:id/approve", requireAuth, requireRole("SENIOR_OFFICER", "ADMIN"),
       });
       if (updated.count === 0) throw new Error("ALREADY_DECIDED");
 
-      await tx.documentAccess.upsert({
-        where: { documentId_userId: { documentId: request.documentId, userId: request.requestedById } },
-        update: { grantedAt: new Date(), expiresAt },
-        create: { documentId: request.documentId, userId: request.requestedById, expiresAt },
+      await tx.documentAccess.create({
+        data: {
+          documentId: request.documentId,
+          userId: request.requestedById,
+          grantedById: userId,
+          expiresAt,
+          isActive: true,
+        },
       });
     });
   } catch (e) {

@@ -85,6 +85,45 @@ enum EvidenceStatus {
   RELEASED
 }
 
+enum NotificationPriority {
+  INFO
+  LOW
+  MEDIUM
+  HIGH
+  URGENT
+}
+
+enum CustodyTransferStatus {
+  PENDING
+  ACCEPTED
+  REJECTED
+  CANCELLED
+  COMPLETED
+}
+
+enum PackageCondition {
+  SEALED_INTACT
+  SEAL_BROKEN
+  DAMAGED
+  OPENED_FOR_EXAMINATION
+  RE_SEALED
+}
+
+enum AccessScope {
+  VIEW_METADATA
+  PREVIEW
+  DOWNLOAD
+  SHARE
+  TRANSFER_CUSTODY
+}
+
+enum AuditOutcome {
+  SUCCESS
+  DENIED
+  FAILED
+  MISMATCH
+}
+
 enum NotificationType {
   ACCESS_REQUEST
   ACCESS_APPROVED
@@ -113,7 +152,9 @@ model User {
   auditLogs         AuditLog[]
   accessRequestsMade     AccessRequest[] @relation("RequestedBy")
   accessRequestsDecided  AccessRequest[] @relation("DecidedBy")
-  documentAccessGrants   DocumentAccess[]
+  documentAccessGrants   DocumentAccess[]  @relation("GrantedUser")
+  documentAccessGranted  DocumentAccess[]  @relation("GrantorUser")
+  documentAccessRevoked  DocumentAccess[]  @relation("RevokerUser")
   signatures        DigitalSignature[]
   notifications     Notification[]
   aiQueries         AIQuery[]
@@ -218,53 +259,74 @@ model DocumentVersion {
 }
 
 model DocumentAccess {
-  id         String   @id @default(cuid())
-  documentId String
-  document   Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
-  userId     String
-  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  grantedAt  DateTime @default(now())
-  expiresAt  DateTime?
+  id           String        @id @default(cuid())
+  documentId   String
+  document     Document      @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  userId       String
+  user         User          @relation("GrantedUser", fields: [userId], references: [id], onDelete: Cascade)
+  grantedById  String?
+  grantedBy    User?         @relation("GrantorUser", fields: [grantedById], references: [id])
+  scopes       AccessScope[] @default([VIEW_METADATA, PREVIEW, DOWNLOAD])
+  grantedAt    DateTime      @default(now())
+  expiresAt    DateTime?
+  isActive     Boolean       @default(true)
+  revokedAt    DateTime?
+  revokedById  String?
+  revokedBy    User?         @relation("RevokerUser", fields: [revokedById], references: [id])
+  revokeReason String?
 
-  @@unique([documentId, userId])
+  @@index([documentId, userId, isActive])
+  @@index([expiresAt, isActive])
   @@index([userId])
 }
 
 model AccessRequest {
-  id           String              @id @default(cuid())
-  documentId   String
-  document     Document            @relation(fields: [documentId], references: [id], onDelete: Cascade)
-  requestedById String
-  requestedBy   User               @relation("RequestedBy", fields: [requestedById], references: [id])
-  decidedById   String?
-  decidedBy     User?              @relation("DecidedBy", fields: [decidedById], references: [id])
-  status        AccessRequestStatus @default(PENDING)
-  reason        String?
-  expiresAt     DateTime?
-  createdAt     DateTime            @default(now())
-  decidedAt     DateTime?
+  id              String              @id @default(cuid())
+  documentId      String
+  document        Document            @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  requestedById   String
+  requestedBy     User                @relation("RequestedBy", fields: [requestedById], references: [id])
+  requestedScopes AccessScope[]       @default([VIEW_METADATA, PREVIEW, DOWNLOAD])
+  decidedById     String?
+  decidedBy       User?               @relation("DecidedBy", fields: [decidedById], references: [id])
+  status          AccessRequestStatus @default(PENDING)
+  reason          String?
+  durationHours   Int                 @default(24)
+  courtOrderRef   String?
+  expiresAt       DateTime?
+  createdAt       DateTime            @default(now())
+  decidedAt       DateTime?
+  decisionNotes   String?
+  accessGrantId   String?             @unique
 
   @@index([documentId])
   @@index([status])
 }
 
 model AuditLog {
-  id         String      @id @default(cuid())
-  action     AuditAction
-  actorId    String?
-  actor      User?       @relation(fields: [actorId], references: [id])
-  documentId String?
-  document   Document?   @relation(fields: [documentId], references: [id])
-  caseId     String?
+  id           String        @id @default(cuid())
+  action       AuditAction
+  outcome      AuditOutcome  @default(SUCCESS)
+  actorId      String?
+  actor        User?         @relation(fields: [actorId], references: [id])
+  documentId   String?
+  document     Document?     @relation(fields: [documentId], references: [id])
+  evidenceId   String?
+  evidence     EvidenceItem? @relation(fields: [evidenceId], references: [id])
+  caseId       String?
   targetUserId String?
-  notes      String?
-  metadata   Json?
-  createdAt  DateTime    @default(now())
+  notes        String?
+  metadata     Json?
+  previousHash String?       @db.VarChar(64)
+  hash         String?       @db.VarChar(64)
+  createdAt    DateTime      @default(now())
 
   @@index([actorId])
   @@index([documentId])
+  @@index([evidenceId])
   @@index([action])
   @@index([createdAt])
+  @@index([hash])
 }
 
 model EvidenceItem {
@@ -279,21 +341,32 @@ model EvidenceItem {
   updatedAt    DateTime       @updatedAt
 
   transfers EvidenceTransfer[]
+  auditLogs AuditLog[]
 
   @@index([caseId])
 }
 
 model EvidenceTransfer {
-  id          String       @id @default(cuid())
-  evidenceId  String
-  evidence    EvidenceItem @relation(fields: [evidenceId], references: [id], onDelete: Cascade)
-  fromUserId  String?
-  fromUser    User?        @relation("TransferFrom", fields: [fromUserId], references: [id])
-  toUserId    String
-  toUser      User         @relation("TransferTo", fields: [toUserId], references: [id])
-  notes       String?
-  transferredAt DateTime   @default(now())
+  id               String                 @id @default(cuid())
+  evidenceId       String
+  evidence         EvidenceItem           @relation(fields: [evidenceId], references: [id], onDelete: Cascade)
+  fromUserId       String?
+  fromUser         User?                  @relation("TransferFrom", fields: [fromUserId], references: [id])
+  toUserId         String
+  toUser           User                   @relation("TransferTo", fields: [toUserId], references: [id])
+  status           CustodyTransferStatus  @default(COMPLETED)
+  purpose          String?
+  sealNumber       String?
+  packageCondition PackageCondition       @default(SEALED_INTACT)
+  location         String?
+  notes            String?
+  decidedAt        DateTime?
+  rejectionReason  String?
+  transferredAt    DateTime               @default(now())
 
+  @@index([evidenceId, status])
+  @@index([toUserId, status])
+  @@index([fromUserId, status])
   @@index([evidenceId])
 }
 
@@ -355,16 +428,21 @@ model InvestigationTimelineEvent {
 }
 
 model Notification {
-  id        String           @id @default(cuid())
+  id        String               @id @default(cuid())
   userId    String
-  user      User             @relation(fields: [userId], references: [id], onDelete: Cascade)
-  type      NotificationType
+  user      User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type      NotificationType     @default(GENERAL)
+  priority  NotificationPriority @default(INFO)
+  category  String               @default("SYSTEM")
   title     String
   message   String
-  isRead    Boolean          @default(false)
-  createdAt DateTime         @default(now())
+  actionUrl String?
+  isRead    Boolean              @default(false)
+  createdAt DateTime             @default(now())
 
+  @@index([userId, isRead])
   @@index([userId])
+  @@index([createdAt])
 }
 
 model ShareLink {
@@ -372,6 +450,9 @@ model ShareLink {
   documentId   String
   document     Document  @relation(fields: [documentId], references: [id], onDelete: Cascade)
   token        String    @unique
+  tokenHash    String?   @unique @db.VarChar(64)
+  pinHash      String?
+  isRevoked    Boolean   @default(false)
   createdById  String
   createdBy    User      @relation(fields: [createdById], references: [id])
   expiresAt    DateTime
@@ -379,5 +460,6 @@ model ShareLink {
   useCount     Int       @default(0)
   createdAt    DateTime  @default(now())
 
+  @@index([tokenHash])
   @@index([documentId])
 }

@@ -54,8 +54,8 @@ export async function userCanAccessDocument(
 
   // A temporary grant (from an approved access request) works even if the
   // person is not a member of the case. Expired grants are ignored.
-  const grant = await prisma.documentAccess.findUnique({
-    where: { documentId_userId: { documentId: doc.id, userId } },
+  const grant = await prisma.documentAccess.findFirst({
+    where: { documentId: doc.id, userId, isActive: true },
   });
   if (grant && (!grant.expiresAt || grant.expiresAt > new Date())) return true;
 
