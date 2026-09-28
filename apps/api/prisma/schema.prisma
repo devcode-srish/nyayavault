@@ -91,6 +91,17 @@ enum AuditAction {
   ROLE_CHANGED
   CASE_CREATED
   AI_QUERY
+  INVESTIGATION_NOTE_CREATED
+}
+
+enum TimelineEventCategory {
+  CASE_LIFECYCLE
+  EVIDENCE_CUSTODY
+  DOCUMENT_VERSIONING
+  DIGITAL_SIGNATURE
+  STORAGE_INTEGRITY
+  ACCESS_SHARING
+  INVESTIGATOR_NOTE
 }
 
 enum EvidenceStatus {
@@ -478,17 +489,21 @@ model ExtractedEntity {
 }
 
 model InvestigationTimelineEvent {
-  id          String   @id @default(cuid())
+  id          String                @id @default(cuid())
   caseId      String
-  case        Case     @relation(fields: [caseId], references: [id], onDelete: Cascade)
+  case        Case                  @relation(fields: [caseId], references: [id], onDelete: Cascade)
+  category    TimelineEventCategory @default(INVESTIGATOR_NOTE)
   title       String
   description String?
-  occurredAt  DateTime
+  occurredAt  DateTime              @default(now())
   createdById String?
-  createdBy   User?    @relation(fields: [createdById], references: [id])
-  createdAt   DateTime @default(now())
+  createdBy   User?                 @relation(fields: [createdById], references: [id])
+  metadata    Json?
+  isMilestone Boolean               @default(false)
+  createdAt   DateTime              @default(now())
 
-  @@index([caseId])
+  @@index([caseId, occurredAt])
+  @@index([category])
 }
 
 model Notification {

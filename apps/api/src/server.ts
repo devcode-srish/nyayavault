@@ -34,7 +34,7 @@ app.use(express.json({ limit: "5mb" }));
 app.use(
   rateLimit({
     windowMs: 15 * 60 * 1000,
-    limit: 300,
+    limit: process.env.NODE_ENV === "production" ? 300 : 5000,
     standardHeaders: true,
     legacyHeaders: false,
   })
@@ -42,7 +42,7 @@ app.use(
 
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  limit: 20,
+  limit: process.env.NODE_ENV === "production" ? 20 : 2000,
   standardHeaders: true,
   legacyHeaders: false,
   message: { error: "Too many auth attempts, please try again later." },
@@ -51,7 +51,7 @@ const authLimiter = rateLimit({
 // Public share links get their own, tighter limit (they need no login).
 const shareLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  limit: 60,
+  limit: process.env.NODE_ENV === "production" ? 60 : 1000,
   standardHeaders: true,
   legacyHeaders: false,
   message: { error: "Too many requests, please try again later." },
