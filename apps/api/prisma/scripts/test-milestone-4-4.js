@@ -179,7 +179,7 @@ async function runTests() {
     assert(!!testCaseId && !!testEvidenceId, "Fixtures initialized with case and physical evidence item");
 
     // =========================================================================
-    // 1. AES-256-GCM Encryption Utility Verification
+    // 1. AES-256-GCM Encryption Utility Verification & Key Rotation
     // =========================================================================
     console.log("\n--- Test 1: AES-256-GCM Cryptographic Encryption & Decryption ---");
     const testPlaintext = "nyayavault-secure-test-token-payload-256bit";
@@ -199,6 +199,21 @@ async function runTests() {
       tagTamperedFailed = true;
     }
     assert(tagTamperedFailed, "Decryption strictly throws error on tampered authentication tag");
+
+    // Test Key Rotation Fallback
+    const oldSecret = "nyayavault-legacy-rotation-secret-key-12345";
+    const oldKey = crypto.createHash("sha256").update(oldSecret, "utf8").digest();
+    const legacyIv = crypto.randomBytes(12);
+    const legacyCipher = crypto.createCipheriv("aes-256-gcm", oldKey, legacyIv, { authTagLength: 16 });
+    let legacyEncrypted = legacyCipher.update("legacy-encrypted-token-data", "utf8", "hex");
+    legacyEncrypted += legacyCipher.final("hex");
+    const legacyTag = legacyCipher.getAuthTag().toString("hex");
+    const legacyPayload = `${legacyIv.toString("hex")}:${legacyTag}:${legacyEncrypted}`;
+
+    process.env.PREVIOUS_ENCRYPTION_SECRETS = oldSecret;
+    const legacyDecrypted = decryptData(legacyPayload);
+    assert(legacyDecrypted === "legacy-encrypted-token-data", "AES-256-GCM decrypts legacy payloads using candidate rotation keys");
+
 
     // =========================================================================
     // 2. Physical Evidence QR Label Retrieval & Initialization

@@ -68,15 +68,24 @@ export interface CustodyReceiptDTO {
 
 /**
  * Derives a deterministic receipt number from the authoritative transfer timestamp and ID.
+ * Optional attempt index appends cryptographic entropy on unique collision retries.
  */
-export function deriveReceiptNumber(transfer: { id: string; transferredAt: Date }): string {
+export function deriveReceiptNumber(
+  transfer: { id: string; transferredAt: Date },
+  attempt = 0
+): string {
   const year = transfer.transferredAt.getUTCFullYear();
   const suffix = transfer.id.replace(/[^a-zA-Z0-9]/g, "").toUpperCase().slice(-8);
-  return `NYA-REC-${year}-${suffix}`;
+  if (attempt === 0) {
+    return `NYA-REC-${year}-${suffix}`;
+  }
+  const entropy = Math.random().toString(36).substring(2, 6).toUpperCase();
+  return `NYA-REC-${year}-${suffix}-${entropy}`;
 }
 
 /**
  * Ensures an authoritative receiptNumber exists on the transfer record.
+ * Handles database uniqueness conflicts safely with collision retry loops.
  */
 export async function getOrAssignReceiptNumber(transferId: string): Promise<string> {
   const transfer = await prisma.evidenceTransfer.findUnique({
@@ -92,23 +101,32 @@ export async function getOrAssignReceiptNumber(transferId: string): Promise<stri
     return transfer.receiptNumber;
   }
 
-  const generatedNumber = deriveReceiptNumber(transfer);
-
-  try {
-    const updated = await prisma.evidenceTransfer.update({
-      where: { id: transferId },
-      data: { receiptNumber: generatedNumber },
-      select: { receiptNumber: true },
-    });
-    return updated.receiptNumber || generatedNumber;
-  } catch (err) {
-    // In case of rare race condition or duplicate, re-fetch authoritative value
-    const refetched = await prisma.evidenceTransfer.findUnique({
-      where: { id: transferId },
-      select: { receiptNumber: true },
-    });
-    return refetched?.receiptNumber || generatedNumber;
+  const maxAttempts = 5;
+  for (let attempt = 0; attempt < maxAttempts; attempt++) {
+    const generatedNumber = deriveReceiptNumber(transfer, attempt);
+    try {
+      const updated = await prisma.evidenceTransfer.update({
+        where: { id: transferId },
+        data: { receiptNumber: generatedNumber },
+        select: { receiptNumber: true },
+      });
+      return updated.receiptNumber || generatedNumber;
+    } catch (err: any) {
+      // In case of unique collision or race condition, re-check authoritative value
+      const refetched = await prisma.evidenceTransfer.findUnique({
+        where: { id: transferId },
+        select: { receiptNumber: true },
+      });
+      if (refetched?.receiptNumber) {
+        return refetched.receiptNumber;
+      }
+      if (attempt === maxAttempts - 1) {
+        throw new Error(`Failed to assign unique receipt number after ${maxAttempts} attempts`);
+      }
+    }
   }
+
+  return deriveReceiptNumber(transfer, 0);
 }
 
 /**
