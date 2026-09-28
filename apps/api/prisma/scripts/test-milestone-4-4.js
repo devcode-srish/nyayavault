@@ -313,9 +313,9 @@ async function runTests() {
     assert(!rotateAudit.notes.includes(newQRToken) && !JSON.stringify(rotateAudit.metadata).includes(newQRToken), "Raw token is strictly excluded from audit notes and metadata (Zero secret leakage)");
 
     // =========================================================================
-    // 6. Custody Handover Receipts (Pending vs Completed)
+    // 6. Custody Handover Receipts (Read-Only GET vs Explicit POST Export)
     // =========================================================================
-    console.log("\n--- Test 6: Custody Handover Receipt Generation & State Invariants ---");
+    console.log("\n--- Test 6: Custody Handover Receipts: Read-Only GET vs Explicit POST Export ---");
     // Initiate two-step transfer (creates PENDING transfer)
     const transferRes = await apiRequest(`/evidence/${testEvidenceId}/transfer`, {
       method: "POST",
@@ -332,7 +332,12 @@ async function runTests() {
     assert(transferRes.status === 201, "Transfer initiated in PENDING status (HTTP 201 Created)");
     testTransferId = transferRes.body.transfer.id;
 
-    // Check Receipt for PENDING transfer
+    // Capture audit count before GET requests
+    const preGetAuditCount = await prisma.auditLog.count({
+      where: { evidenceId: testEvidenceId, action: "CUSTODY_RECEIPT_GENERATED" },
+    });
+
+    // 1. Check Receipt for PENDING transfer via read-only GET
     const pendingReceiptRes = await apiRequest(`/evidence/transfers/${testTransferId}/receipt`, {
       headers: { Authorization: `Bearer ${officerToken}` },
     });
@@ -342,40 +347,60 @@ async function runTests() {
     assert(pendingReceiptRes.body.receipt.watermarkText.includes("PENDING TRANSFER"), "Pending transfer receipt includes prominent warning watermark");
     assert(pendingReceiptRes.body.receipt.receiptNumber.startsWith("NYA-REC-"), "Deterministic receipt number starts with NYA-REC-");
 
-    // Verify State Immutability: Receipt retrieval did NOT change custody or transfer state
-    const postReceiptItem = await prisma.evidenceItem.findUnique({ where: { id: testEvidenceId } });
-    assert(postReceiptItem.currentCustodianId === officerUserId, "Evidence currentCustodianId is UNCHANGED (still sender)");
-    const postReceiptTransfer = await prisma.evidenceTransfer.findUnique({ where: { id: testTransferId } });
-    assert(postReceiptTransfer.status === "PENDING", "Evidence transfer status is UNCHANGED (still PENDING)");
+    // 2. Verify GET does not create audit event
+    const postGetAuditCount = await prisma.auditLog.count({
+      where: { evidenceId: testEvidenceId, action: "CUSTODY_RECEIPT_GENERATED" },
+    });
+    assert(postGetAuditCount === preGetAuditCount, "GET receipt retrieval does NOT create an audit event (zero side effects)");
 
-    // Recipient accepts the transfer
+    // 3. Verify State Immutability: Custodian and transfer status unchanged
+    const postReceiptItem = await prisma.evidenceItem.findUnique({ where: { id: testEvidenceId } });
+    assert(postReceiptItem.currentCustodianId === officerUserId, "GET receipt: evidence currentCustodianId is UNCHANGED (still sender)");
+    const postReceiptTransfer = await prisma.evidenceTransfer.findUnique({ where: { id: testTransferId } });
+    assert(postReceiptTransfer.status === "PENDING", "GET receipt: evidence transfer status is UNCHANGED (still PENDING)");
+
+    // 4. Recipient accepts the transfer
     const acceptRes = await apiRequest(`/evidence/transfers/${testTransferId}/accept`, {
       method: "POST",
       headers: { Authorization: `Bearer ${seniorToken}` },
     });
     assert(acceptRes.status === 200, "Recipient accepts transfer (HTTP 200 OK)");
 
-    // Check Receipt for ACCEPTED / COMPLETED transfer
-    const acceptedReceiptRes = await apiRequest(`/evidence/transfers/${testTransferId}/receipt?recordAudit=true`, {
+    // 5. Read-only reprint of accepted transfer
+    const reprintReceiptRes = await apiRequest(`/evidence/transfers/${testTransferId}/receipt`, {
       headers: { Authorization: `Bearer ${seniorToken}` },
     });
-    assert(acceptedReceiptRes.status === 200, "GET completed transfer receipt returns 200 OK");
-    assert(acceptedReceiptRes.body.receipt.status === "ACCEPTED", "Receipt status accurately reports ACCEPTED");
-    assert(acceptedReceiptRes.body.receipt.isPending === false, "isPending flag is false");
-    assert(acceptedReceiptRes.body.receipt.watermarkText === null, "Completed receipt has no pending watermark");
-    assert(acceptedReceiptRes.body.receipt.receiptNumber === pendingReceiptRes.body.receipt.receiptNumber, "Receipt reference number is stable and identical across reprints");
-    assert(acceptedReceiptRes.body.receipt.parties.sender.name === officerUser.name, "Sender name recorded correctly");
-    assert(acceptedReceiptRes.body.receipt.parties.recipient.name === seniorUser.name, "Recipient name recorded correctly");
-    assert(acceptedReceiptRes.body.receipt.handoverDetails.sealNumber === "SEAL-IND-884920", "Seal number recorded on receipt");
-    assert(!!acceptedReceiptRes.body.receipt.auditProof?.hash, "Receipt references authoritative audit log hash");
+    assert(reprintReceiptRes.status === 200, "GET reprint of accepted receipt returns 200 OK");
+    assert(reprintReceiptRes.body.receipt.receiptNumber === pendingReceiptRes.body.receipt.receiptNumber, "Receipt reference number is stable and identical across reprints");
+    assert(reprintReceiptRes.body.receipt.status === "ACCEPTED", "Reprint receipt status accurately reports ACCEPTED");
+    assert(reprintReceiptRes.body.receipt.watermarkText === null, "Completed receipt has no pending watermark");
 
-    // Verify CUSTODY_RECEIPT_GENERATED audit log emission
+    // 6. Unauthorized user cannot export receipt (HTTP 403 Forbidden)
+    const unauthorizedExportRes = await apiRequest(`/evidence/transfers/${testTransferId}/receipt/export`, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${otherOfficerToken}` },
+    });
+    assert(unauthorizedExportRes.status === 403, "Unauthorized user cannot export receipt (HTTP 403 Forbidden)");
+
+    // 7. Authorized user exports receipt via explicit POST /export
+    const exportRes = await apiRequest(`/evidence/transfers/${testTransferId}/receipt/export`, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${seniorToken}` },
+    });
+    assert(exportRes.status === 200, "POST /api/evidence/transfers/:id/receipt/export returns 200 OK");
+    assert(exportRes.body.receipt.receiptNumber === pendingReceiptRes.body.receipt.receiptNumber, "Exported receipt retains consistent receipt number");
+    assert(exportRes.body.receipt.parties.sender.name === officerUser.name, "Sender name recorded correctly");
+    assert(exportRes.body.receipt.parties.recipient.name === seniorUser.name, "Recipient name recorded correctly");
+    assert(exportRes.body.receipt.handoverDetails.sealNumber === "SEAL-IND-884920", "Seal number recorded on receipt");
+    assert(!!exportRes.body.receipt.auditProof?.hash, "Receipt references authoritative audit log hash");
+
+    // 8. Verify CUSTODY_RECEIPT_GENERATED audit log emission on POST export
     const receiptAudit = await prisma.auditLog.findFirst({
       where: { evidenceId: testEvidenceId, action: "CUSTODY_RECEIPT_GENERATED" },
       orderBy: { createdAt: "desc" },
     });
-    assert(!!receiptAudit, "CUSTODY_RECEIPT_GENERATED audit log was emitted in database");
-    assert(receiptAudit.notes.includes(acceptedReceiptRes.body.receipt.receiptNumber), "Audit notes contain receipt reference number");
+    assert(!!receiptAudit, "Explicit POST export emits CUSTODY_RECEIPT_GENERATED audit log in database");
+    assert(receiptAudit.notes.includes(exportRes.body.receipt.receiptNumber), "Audit notes contain receipt reference number");
 
     // =========================================================================
     // 7. Full Cryptographic Audit Hash Chain Continuity

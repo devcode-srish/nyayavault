@@ -8,7 +8,7 @@ import { PackageCondition } from "@prisma/client";
 import { recordAudit } from "../lib/audit";
 import { encryptData, decryptData } from "../lib/encryption";
 import { generateQRToken, hashQRToken, generateQRCodeSVG, generateQRCodeDataURI } from "../lib/qr";
-import { getCustodyReceipt, getOrAssignReceiptNumber } from "../services/receipt.service";
+import { getCustodyReceipt, exportCustodyReceipt, getOrAssignReceiptNumber } from "../services/receipt.service";
 
 const router = Router();
 
@@ -324,13 +324,25 @@ router.post("/transfers/:transferId/cancel", requireAuth, async (req, res) => {
   return res.json({ ok: true, status: "CANCELLED" });
 });
 
-// GET /api/evidence/transfers/:transferId/receipt - view or export official custody receipt
+// GET /api/evidence/transfers/:transferId/receipt - strictly read-only receipt retrieval and reprinting
 router.get("/transfers/:transferId/receipt", requireAuth, async (req, res) => {
   const { sub: userId, role } = req.user!;
   const { transferId } = req.params;
-  const recordAudit = req.query.recordAudit === "true";
 
-  const result = await getCustodyReceipt(transferId, userId, role, { recordAudit });
+  const result = await getCustodyReceipt(transferId, userId, role);
+  if (!result.success) {
+    return res.status(result.status).json({ error: result.error });
+  }
+
+  return res.json({ ok: true, receipt: result.receipt });
+});
+
+// POST /api/evidence/transfers/:transferId/receipt/export - explicit official custody receipt export action (emits CUSTODY_RECEIPT_GENERATED)
+router.post("/transfers/:transferId/receipt/export", requireAuth, async (req, res) => {
+  const { sub: userId, role } = req.user!;
+  const { transferId } = req.params;
+
+  const result = await exportCustodyReceipt(transferId, userId, role);
   if (!result.success) {
     return res.status(result.status).json({ error: result.error });
   }

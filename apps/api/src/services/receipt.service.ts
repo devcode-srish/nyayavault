@@ -131,13 +131,12 @@ export async function getOrAssignReceiptNumber(transferId: string): Promise<stri
 
 /**
  * Generates an official custody handover receipt payload for an evidence transfer.
- * Note: Receipt generation is strictly read-only and never mutates custody state.
+ * Note: Receipt retrieval is strictly read-only and never mutates custody state or audit logs.
  */
 export async function getCustodyReceipt(
   transferId: string,
   userId: string,
-  userRole: string,
-  options: { recordAudit?: boolean } = {}
+  userRole: string
 ): Promise<{ success: boolean; status: number; receipt?: CustodyReceiptDTO; error?: string }> {
   const transfer = await prisma.evidenceTransfer.findUnique({
     where: { id: transferId },
@@ -246,24 +245,45 @@ export async function getCustodyReceipt(
       "This document is an administrative physical custody transfer receipt recorded in NyayaVault. It certifies the physical movement, seal condition, and custody responsibility of the referenced physical exhibit.",
   };
 
-  // If caller explicitly requested an official export/print receipt, record audit entry
-  if (options.recordAudit) {
-    await recordAudit({
-      action: "CUSTODY_RECEIPT_GENERATED",
-      actorId: userId,
-      evidenceId: transfer.evidenceId,
-      caseId: transfer.evidence.caseId,
-      targetUserId: transfer.toUserId,
-      notes: `Official physical custody receipt generated: ${receiptNumber} (Status: ${transfer.status})`,
-      metadata: {
-        receiptNumber,
-        transferId: transfer.id,
-        status: transfer.status,
-        packageCondition: transfer.packageCondition,
-        sealNumber: transfer.sealNumber,
-      },
-    });
+  return {
+    success: true,
+    status: 200,
+    receipt,
+  };
+}
+
+/**
+ * Explicit official export of a custody handover receipt.
+ * Emits a CUSTODY_RECEIPT_GENERATED audit log record and returns the receipt DTO.
+ */
+export async function exportCustodyReceipt(
+  transferId: string,
+  userId: string,
+  userRole: string
+): Promise<{ success: boolean; status: number; receipt?: CustodyReceiptDTO; error?: string }> {
+  const result = await getCustodyReceipt(transferId, userId, userRole);
+  if (!result.success || !result.receipt) {
+    return result;
   }
+
+  const receipt = result.receipt;
+
+  // Emit explicit official export audit log record
+  await recordAudit({
+    action: "CUSTODY_RECEIPT_GENERATED",
+    actorId: userId,
+    evidenceId: receipt.evidence.id,
+    caseId: receipt.case.id,
+    targetUserId: receipt.parties.recipient.id,
+    notes: `Official physical custody receipt exported: ${receipt.receiptNumber} (Status: ${receipt.status})`,
+    metadata: {
+      receiptNumber: receipt.receiptNumber,
+      transferId: receipt.transferId,
+      status: receipt.status,
+      packageCondition: receipt.handoverDetails.packageCondition,
+      sealNumber: receipt.handoverDetails.sealNumber,
+    },
+  });
 
   return {
     success: true,

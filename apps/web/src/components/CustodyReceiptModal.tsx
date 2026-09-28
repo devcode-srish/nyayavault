@@ -52,8 +52,8 @@ export default function CustodyReceiptModal({
   async function handlePrintOfficial() {
     setExporting(true);
     try {
-      // Notify server of official export to record CUSTODY_RECEIPT_GENERATED audit log
-      await api.get(`/evidence/transfers/${transferId}/receipt?recordAudit=true`);
+      // Send explicit POST request for official export to record CUSTODY_RECEIPT_GENERATED audit log
+      await api.post(`/evidence/transfers/${transferId}/receipt/export`);
       window.print();
     } catch (err) {
       console.error("Failed to record export audit log:", err);
