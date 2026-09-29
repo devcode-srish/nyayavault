@@ -1,3 +1,6 @@
+import dotenv from "dotenv";
+import path from "path";
+dotenv.config({ path: path.join(__dirname, "../../../.env") });
 import { PrismaClient, Role, Classification, EvidenceStatus } from "@prisma/client";
 import argon2 from "argon2";
 import { sha256Buffer } from "../src/lib/hash";

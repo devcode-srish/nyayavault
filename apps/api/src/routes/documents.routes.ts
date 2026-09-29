@@ -16,6 +16,7 @@ import { sha256Buffer } from "../lib/hash";
 import { saveFile, readFile } from "../lib/storage";
 import { recordAudit } from "../lib/audit";
 import { attachmentHeader } from "../lib/http";
+import { analyzeDocument } from "../lib/ai";
 
 const router = Router();
 
@@ -539,6 +540,53 @@ router.get("/:id/shares", requireAuth, requireRole(...UPLOAD_ROLES), async (req,
         : "ACTIVE",
     })),
   });
+});
+
+// POST /api/documents/:id/ai-analyze - analyze document with Gemini AI
+router.post("/:id/ai-analyze", requireAuth, async (req, res) => {
+  const { sub: userId, role } = req.user!;
+  const { id } = req.params;
+
+  const document = await prisma.document.findUnique({ where: { id } });
+  if (!document) return res.status(404).json({ error: "Document not found" });
+  if (!(await userCanAccessDocument(userId, role, document))) {
+    return denyDocument(res, userId, id);
+  }
+
+  const version = await prisma.documentVersion.findUnique({
+    where: { documentId_versionNo: { documentId: id, versionNo: document.latestVersionNo } },
+  });
+  if (!version) return res.status(404).json({ error: "Latest version not found" });
+
+  let buffer: Buffer;
+  try {
+    buffer = readFile(version.storageKey);
+  } catch {
+    return res.status(404).json({ error: "Stored file is missing" });
+  }
+
+  try {
+    const aiResult = await analyzeDocument(buffer, version.mimeType);
+
+    await recordAudit({
+      action: "AI_QUERY", // Using existing AI_QUERY instead of adding new DOCUMENT_AI_ANALYSIS to avoid DB schema migration
+      actorId: userId,
+      documentId: id,
+      caseId: document.caseId,
+      notes: `AI Analysis executed on version ${document.latestVersionNo}`,
+    });
+
+    return res.json(aiResult);
+  } catch (err: any) {
+    if (err.message === "Document contains no extractable text.") {
+      return res.status(400).json({ error: err.message });
+    }
+    if (err.message.includes("Unsupported document type")) {
+      return res.status(400).json({ error: err.message });
+    }
+    console.error("AI Analysis Error:", err);
+    return res.status(502).json({ error: "AI processing failed. Please try again later." });
+  }
 });
 
 export default router;

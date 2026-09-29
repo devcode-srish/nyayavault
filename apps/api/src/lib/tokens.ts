@@ -19,9 +19,13 @@ export interface AccessTokenPayload {
 }
 
 export function signAccessToken(payload: AccessTokenPayload): string {
+<<<<<<< HEAD
   return jwt.sign(payload, ACCESS_SECRET, {
     expiresIn: ACCESS_EXPIRES_IN as jwt.SignOptions["expiresIn"],
   });
+=======
+  return jwt.sign(payload, ACCESS_SECRET, { expiresIn: ACCESS_EXPIRES_IN as any });
+>>>>>>> origin/main
 }
 
 export function verifyAccessToken(token: string): AccessTokenPayload {

@@ -18,9 +18,9 @@ export default function UsersPage() {
       <PageHeader title="Users" subtitle="Admin-only — enforced server-side, not just hidden in the sidebar" />
       <div className="p-8">
         {error && <p className="text-red-400 text-sm mb-4">{error}</p>}
-        <div className="bg-vault-900 border border-vault-800 rounded-xl overflow-hidden">
+        <div className="bg-white dark:bg-vault-900 border border-slate-200 dark:border-vault-800 rounded-xl overflow-hidden">
           <table className="w-full text-sm">
-            <thead className="bg-vault-800/50 text-vault-400 text-xs uppercase">
+            <thead className="bg-slate-50 dark:bg-vault-800/50 text-slate-500 dark:text-vault-400 text-xs uppercase">
               <tr>
                 <th className="text-left px-4 py-2">Name</th>
                 <th className="text-left px-4 py-2">Email</th>
@@ -28,12 +28,12 @@ export default function UsersPage() {
                 <th className="text-left px-4 py-2">Status</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-vault-800">
+            <tbody className="divide-y divide-slate-100 dark:divide-vault-800">
               {users.map((u) => (
                 <tr key={u.id}>
-                  <td className="px-4 py-2 text-vault-200">{u.name}</td>
-                  <td className="px-4 py-2 text-vault-400">{u.email}</td>
-                  <td className="px-4 py-2 text-vault-300">{u.role.replace(/_/g, " ")}</td>
+                  <td className="px-4 py-2 text-slate-700 dark:text-vault-200">{u.name}</td>
+                  <td className="px-4 py-2 text-slate-500 dark:text-vault-400">{u.email}</td>
+                  <td className="px-4 py-2 text-slate-600 dark:text-vault-300">{u.role.replace(/_/g, " ")}</td>
                   <td className="px-4 py-2">
                     <Badge text={u.isActive ? "Active" : "Disabled"} tone={u.isActive ? "good" : "danger"} />
                   </td>
