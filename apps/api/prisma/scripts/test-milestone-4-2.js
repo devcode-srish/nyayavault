@@ -20,7 +20,12 @@ const { PrismaClient } = require("@prisma/client");
 
 const prisma = new PrismaClient();
 const BASE_URL = process.env.API_BASE_URL || "http://localhost:4000/api";
-const LOCAL_STORAGE_DIR = path.resolve(__dirname, "../../storage");
+const LOCAL_STORAGE_DIR = fs.existsSync(path.resolve(process.cwd(), "storage"))
+  ? path.resolve(process.cwd(), "storage")
+  : path.resolve(__dirname, "../../../../storage");
+if (!fs.existsSync(LOCAL_STORAGE_DIR)) {
+  fs.mkdirSync(LOCAL_STORAGE_DIR, { recursive: true });
+}
 
 let adminToken = "";
 let officerToken = "";

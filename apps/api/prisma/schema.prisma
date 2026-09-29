@@ -94,6 +94,15 @@ enum AuditAction {
   INVESTIGATION_NOTE_CREATED
   CUSTODY_RECEIPT_GENERATED
   EVIDENCE_QR_ROTATED
+  COURT_BUNDLE_INITIATED
+  COURT_BUNDLE_COMPLETED
+  COURT_BUNDLE_FAILED
+}
+
+enum CourtBundleStatus {
+  GENERATING
+  COMPLETED
+  FAILED
 }
 
 enum TimelineEventCategory {
@@ -192,6 +201,7 @@ model User {
   evidenceTransfersTo   EvidenceTransfer[] @relation("TransferTo")
   timelineEvents    InvestigationTimelineEvent[]
   storageScanRuns   StorageScanRun[]
+  courtBundleExports CourtBundleExport[]
 
   @@index([role])
 }
@@ -224,6 +234,7 @@ model Case {
   timelineEvents     InvestigationTimelineEvent[]
   aiQueries          AIQuery[]
   storageScanRuns    StorageScanRun[]
+  courtBundleExports CourtBundleExport[]
 
   @@index([status])
 }
@@ -605,3 +616,29 @@ model StorageScanFinding {
   @@index([status])
   @@index([scannedAt])
 }
+
+model CourtBundleExport {
+  id                 String            @id @default(cuid())
+  caseId             String
+  case               Case              @relation(fields: [caseId], references: [id], onDelete: Cascade)
+  bundleNumber       String            @unique @db.VarChar(64)
+  courtRefNumber     String?           @db.VarChar(100)
+  merkleRootHash     String?           @db.VarChar(64)
+  authorityKeyFp     String?           @db.VarChar(64)
+  authoritySignature String?           @db.Text
+  zipStorageKey      String?
+  zipSizeBytes       Int?
+  status             CourtBundleStatus @default(GENERATING)
+  errorMessage       String?           @db.Text
+  manifestJson       Json?
+  exportedById       String
+  exportedBy         User              @relation(fields: [exportedById], references: [id])
+  createdAt          DateTime          @default(now())
+  completedAt        DateTime?
+
+  @@index([caseId, status])
+  @@index([exportedById])
+  @@index([merkleRootHash])
+  @@index([bundleNumber])
+}
+

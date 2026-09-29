@@ -25,8 +25,14 @@ import {
   X,
   ChevronLeft,
   ChevronRight,
+  Briefcase,
+  Download,
+  Copy,
+  Check,
 } from "lucide-react";
 import { PageHeader, Card, Badge, EmptyState } from "../components/ui";
+import CourtBundleExportModal from "../components/CourtBundleExportModal";
+import { useAuth } from "../context/AuthContext";
 
 const CLASSIFICATIONS = ["PUBLIC", "INTERNAL", "RESTRICTED", "CONFIDENTIAL"];
 
@@ -75,12 +81,13 @@ interface TimelineEvent {
 
 export default function CaseDetail() {
   const { id } = useParams();
+  const { user } = useAuth();
   const [caseData, setCaseData] = useState<any>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
   // Tab State
-  const [activeTab, setActiveTab] = useState<"timeline" | "documents" | "overview">("timeline");
+  const [activeTab, setActiveTab] = useState<"timeline" | "documents" | "court-bundles" | "overview">("timeline");
 
   // Timeline State
   const [timelineEvents, setTimelineEvents] = useState<TimelineEvent[]>([]);
@@ -95,6 +102,14 @@ export default function CaseDetail() {
   const [dateTo, setDateTo] = useState("");
   const [dateError, setDateError] = useState<string | null>(null);
   const [sortOrder, setSortOrder] = useState<"desc" | "asc">("desc");
+
+  // Courtroom Evidence Bundles State
+  const [courtBundles, setCourtBundles] = useState<any[]>([]);
+  const [courtBundlesLoading, setCourtBundlesLoading] = useState(false);
+  const [showCourtBundleModal, setShowCourtBundleModal] = useState(false);
+  const [downloadingBundleId, setDownloadingBundleId] = useState<string | null>(null);
+  const [bundleActionError, setBundleActionError] = useState<string | null>(null);
+  const [copiedBundleRoot, setCopiedBundleRoot] = useState<string | null>(null);
 
   // Note Creation Modal State
   const [showNoteModal, setShowNoteModal] = useState(false);
@@ -114,6 +129,10 @@ export default function CaseDetail() {
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
 
+  const canExportCourtBundle =
+    user &&
+    ["ADMIN", "SENIOR_OFFICER", "INVESTIGATING_OFFICER", "LEGAL_OFFICER"].includes(user.role);
+
   const loadCase = useCallback(() => {
     setLoading(true);
     api
@@ -121,6 +140,21 @@ export default function CaseDetail() {
       .then(({ data }) => setCaseData(data.case))
       .catch((e) => setError(e?.response?.data?.error || "Failed to load case"))
       .finally(() => setLoading(false));
+  }, [id]);
+
+  const loadCourtBundles = useCallback(async () => {
+    if (!id) return;
+    setCourtBundlesLoading(true);
+    setBundleActionError(null);
+    try {
+      const { data } = await api.get(`/cases/${id}/court-bundles`);
+      setCourtBundles(data.bundles || []);
+    } catch (err: any) {
+      console.error("Failed to load court bundles:", err);
+      setBundleActionError(err?.response?.data?.error || "Failed to load courtroom bundles");
+    } finally {
+      setCourtBundlesLoading(false);
+    }
   }, [id]);
 
   const loadTimeline = useCallback(async () => {
@@ -163,13 +197,44 @@ export default function CaseDetail() {
 
   useEffect(() => {
     loadCase();
-  }, [loadCase]);
+    loadCourtBundles();
+  }, [loadCase, loadCourtBundles]);
 
   useEffect(() => {
     if (activeTab === "timeline") {
       loadTimeline();
+    } else if (activeTab === "court-bundles") {
+      loadCourtBundles();
     }
-  }, [activeTab, loadTimeline]);
+  }, [activeTab, loadTimeline, loadCourtBundles]);
+
+  async function handleDownloadBundle(bundleId: string, bundleNumber: string) {
+    setDownloadingBundleId(bundleId);
+    try {
+      const response = await api.get(`/cases/court-bundles/${bundleId}/download`, {
+        responseType: "blob",
+      });
+      const blob = new Blob([response.data], { type: "application/zip" });
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `${bundleNumber}.zip`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+    } catch (err: any) {
+      alert(err?.response?.data?.error || "Failed to download court bundle archive.");
+    } finally {
+      setDownloadingBundleId(null);
+    }
+  }
+
+  function handleCopyMerkleRoot(root: string) {
+    navigator.clipboard.writeText(root);
+    setCopiedBundleRoot(root);
+    setTimeout(() => setCopiedBundleRoot(null), 2000);
+  }
 
   async function handleUpload(e: React.FormEvent) {
     e.preventDefault();

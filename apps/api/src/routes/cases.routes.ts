@@ -114,4 +114,103 @@ router.post("/:id/timeline", requireAuth, async (req, res) => {
   return res.status(201).json({ event: result.event });
 });
 
+import {
+  generateCourtBundle,
+  listCaseCourtBundles,
+  getCourtBundleDownload,
+  CourtBundleError,
+} from "../services/courtBundle.service";
+
+/**
+ * GET /api/cases/court-bundles/:bundleId/download
+ * Downloads the sealed .zip courtroom evidence bundle archive.
+ */
+router.get("/court-bundles/:bundleId/download", requireAuth, async (req, res) => {
+  const { sub: userId, role } = req.user!;
+  const { bundleId } = req.params;
+
+  try {
+    const downloadData = await getCourtBundleDownload(bundleId, userId, role);
+
+    res.setHeader("Content-Type", "application/zip");
+    res.setHeader("Content-Disposition", `attachment; filename="${downloadData.filename}"`);
+    res.setHeader("Content-Length", downloadData.sizeBytes);
+
+    return res.send(downloadData.zipBuffer);
+  } catch (err: any) {
+    if (err instanceof CourtBundleError) {
+      return res.status(err.statusCode).json({ error: err.message, code: err.code });
+    }
+    return res.status(500).json({ error: err?.message || "Failed to download court bundle" });
+  }
+});
+
+/**
+ * POST /api/cases/:id/court-bundle
+ * Generates an authoritative Courtroom Evidence Bundle (.zip) for the case.
+ */
+router.post("/:id/court-bundle", requireAuth, async (req, res) => {
+  const { sub: userId, role } = req.user!;
+  const { id: caseId } = req.params;
+  const { courtRefNumber } = req.body || {};
+
+  try {
+    const result = await generateCourtBundle({
+      caseId,
+      userId,
+      role,
+      courtRefNumber,
+    });
+    return res.status(201).json(result);
+  } catch (err: any) {
+    if (err instanceof CourtBundleError) {
+      return res.status(err.statusCode).json({ error: err.message, code: err.code });
+    }
+    return res.status(500).json({ error: err?.message || "Failed to generate court bundle" });
+  }
+});
+
+/**
+ * GET /api/cases/:id/court-bundles
+ * Lists historical courtroom evidence bundles generated for this case.
+ */
+router.get("/:id/court-bundles", requireAuth, async (req, res) => {
+  const { sub: userId, role } = req.user!;
+  const { id: caseId } = req.params;
+
+  try {
+    const bundles = await listCaseCourtBundles(caseId, userId, role);
+    return res.json({ bundles });
+  } catch (err: any) {
+    if (err instanceof CourtBundleError) {
+      return res.status(err.statusCode).json({ error: err.message, code: err.code });
+    }
+    return res.status(500).json({ error: err?.message || "Failed to list court bundles" });
+  }
+});
+
+/**
+ * GET /api/cases/:id/court-bundles/:bundleId/download
+ * Case-scoped alias for downloading courtroom evidence bundle.
+ */
+router.get("/:id/court-bundles/:bundleId/download", requireAuth, async (req, res) => {
+  const { sub: userId, role } = req.user!;
+  const { bundleId } = req.params;
+
+  try {
+    const downloadData = await getCourtBundleDownload(bundleId, userId, role);
+
+    res.setHeader("Content-Type", "application/zip");
+    res.setHeader("Content-Disposition", `attachment; filename="${downloadData.filename}"`);
+    res.setHeader("Content-Length", downloadData.sizeBytes);
+
+    return res.send(downloadData.zipBuffer);
+  } catch (err: any) {
+    if (err instanceof CourtBundleError) {
+      return res.status(err.statusCode).json({ error: err.message, code: err.code });
+    }
+    return res.status(500).json({ error: err?.message || "Failed to download court bundle" });
+  }
+});
+
 export default router;
