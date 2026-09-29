@@ -1,4 +1,4 @@
-import jwt from "jsonwebtoken";
+﻿import jwt from "jsonwebtoken";
 import crypto from "crypto";
 
 const ACCESS_SECRET = process.env.JWT_ACCESS_SECRET as string;
@@ -19,13 +19,7 @@ export interface AccessTokenPayload {
 }
 
 export function signAccessToken(payload: AccessTokenPayload): string {
-<<<<<<< HEAD
-  return jwt.sign(payload, ACCESS_SECRET, {
-    expiresIn: ACCESS_EXPIRES_IN as jwt.SignOptions["expiresIn"],
-  });
-=======
   return jwt.sign(payload, ACCESS_SECRET, { expiresIn: ACCESS_EXPIRES_IN as any });
->>>>>>> origin/main
 }
 
 export function verifyAccessToken(token: string): AccessTokenPayload {
@@ -34,7 +28,7 @@ export function verifyAccessToken(token: string): AccessTokenPayload {
 
 // Refresh tokens are random opaque strings stored (hashed not required for
 // demo scope, but we store them server-side so they can be revoked) in the
-// RefreshToken table — NOT JWTs — so they can be invalidated individually.
+// RefreshToken table - NOT JWTs - so they can be invalidated individually.
 export function generateRefreshToken(): string {
   return crypto.randomBytes(48).toString("hex");
 }

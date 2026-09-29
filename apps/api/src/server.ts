@@ -14,10 +14,10 @@ import accessRequestsRoutes from "./routes/accessRequests.routes";
 import notificationsRoutes from "./routes/notifications.routes";
 import evidenceRoutes from "./routes/evidence.routes";
 import shareRoutes from "./routes/share.routes";
-import adminRoutes from "./routes/admin.routes";
+// import adminRoutes from "./routes/admin.routes"; // TODO: file missing from repo, ask Aryan 
 import signaturesRoutes from "./routes/signatures.routes";
 import integrityRoutes from "./routes/integrity.routes";
-import { startExpiryScheduler } from "./jobs/scheduler";
+// import { startExpiryScheduler } from "./jobs/scheduler"; // TODO: file missing from repo, ask Aryan
 import { validateEncryptionConfig } from "./lib/encryption";
 
 const app = express();
@@ -85,7 +85,7 @@ app.use("/api/access-requests", accessRequestsRoutes);
 app.use("/api/notifications", notificationsRoutes);
 app.use("/api/evidence", evidenceVerifyLimiter, evidenceRoutes);
 app.use("/api/share", shareLimiter, shareRoutes);
-app.use("/api/admin", adminRoutes);
+// app.use("/api/admin", adminRoutes); // TODO: file missing from repo, ask Aryan 
 app.use("/api/signatures", signaturesRoutes);
 app.use("/api/integrity", integrityRoutes);
 
@@ -113,5 +113,5 @@ app.listen(PORT, () => {
     }, Rotation Keys: ${encConfig.rotationKeysConfigured}]`
   );
   // Start background scheduler if enabled
-  startExpiryScheduler();
+   // startExpiryScheduler(); // TODO: file missing from repo, ask Aryan
 });
