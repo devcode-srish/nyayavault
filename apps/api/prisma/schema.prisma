@@ -42,6 +42,21 @@ enum IntegrityStatus {
   MISMATCH
 }
 
+enum StorageScanStatus {
+  IN_PROGRESS
+  COMPLETED
+  FAILED
+  CANCELLED
+}
+
+enum FindingStatus {
+  VERIFIED
+  MISMATCH
+  MISSING
+  UNREADABLE
+  ERROR
+}
+
 enum SignatureStatus {
   UNSIGNED
   SIGNED
@@ -76,6 +91,28 @@ enum AuditAction {
   ROLE_CHANGED
   CASE_CREATED
   AI_QUERY
+  INVESTIGATION_NOTE_CREATED
+  CUSTODY_RECEIPT_GENERATED
+  EVIDENCE_QR_ROTATED
+  COURT_BUNDLE_INITIATED
+  COURT_BUNDLE_COMPLETED
+  COURT_BUNDLE_FAILED
+}
+
+enum CourtBundleStatus {
+  GENERATING
+  COMPLETED
+  FAILED
+}
+
+enum TimelineEventCategory {
+  CASE_LIFECYCLE
+  EVIDENCE_CUSTODY
+  DOCUMENT_VERSIONING
+  DIGITAL_SIGNATURE
+  STORAGE_INTEGRITY
+  ACCESS_SHARING
+  INVESTIGATOR_NOTE
 }
 
 enum EvidenceStatus {
@@ -83,6 +120,45 @@ enum EvidenceStatus {
   IN_ANALYSIS
   ANALYZED
   RELEASED
+}
+
+enum NotificationPriority {
+  INFO
+  LOW
+  MEDIUM
+  HIGH
+  URGENT
+}
+
+enum CustodyTransferStatus {
+  PENDING
+  ACCEPTED
+  REJECTED
+  CANCELLED
+  COMPLETED
+}
+
+enum PackageCondition {
+  SEALED_INTACT
+  SEAL_BROKEN
+  DAMAGED
+  OPENED_FOR_EXAMINATION
+  RE_SEALED
+}
+
+enum AccessScope {
+  VIEW_METADATA
+  PREVIEW
+  DOWNLOAD
+  SHARE
+  TRANSFER_CUSTODY
+}
+
+enum AuditOutcome {
+  SUCCESS
+  DENIED
+  FAILED
+  MISMATCH
 }
 
 enum NotificationType {
@@ -113,14 +189,19 @@ model User {
   auditLogs         AuditLog[]
   accessRequestsMade     AccessRequest[] @relation("RequestedBy")
   accessRequestsDecided  AccessRequest[] @relation("DecidedBy")
-  documentAccessGrants   DocumentAccess[]
+  documentAccessGrants   DocumentAccess[]  @relation("GrantedUser")
+  documentAccessGranted  DocumentAccess[]  @relation("GrantorUser")
+  documentAccessRevoked  DocumentAccess[]  @relation("RevokerUser")
   signatures        DigitalSignature[]
+  signingKeys       UserSigningKey[]
   notifications     Notification[]
   aiQueries         AIQuery[]
   shareLinksCreated ShareLink[]
   evidenceTransfersFrom EvidenceTransfer[] @relation("TransferFrom")
   evidenceTransfersTo   EvidenceTransfer[] @relation("TransferTo")
   timelineEvents    InvestigationTimelineEvent[]
+  storageScanRuns   StorageScanRun[]
+  courtBundleExports CourtBundleExport[]
 
   @@index([role])
 }
@@ -152,6 +233,8 @@ model Case {
   evidenceItems      EvidenceItem[]
   timelineEvents     InvestigationTimelineEvent[]
   aiQueries          AIQuery[]
+  storageScanRuns    StorageScanRun[]
+  courtBundleExports CourtBundleExport[]
 
   @@index([status])
 }
@@ -184,13 +267,14 @@ model Document {
   createdAt        DateTime        @default(now())
   updatedAt        DateTime        @updatedAt
 
-  versions       DocumentVersion[]
-  accessGrants   DocumentAccess[]
-  accessRequests AccessRequest[]
-  signatures     DigitalSignature[]
-  auditLogs      AuditLog[]
+  versions          DocumentVersion[]
+  accessGrants      DocumentAccess[]
+  accessRequests    AccessRequest[]
+  signatures        DigitalSignature[]
+  auditLogs         AuditLog[]
   extractedEntities ExtractedEntity[]
-  shareLinks     ShareLink[]
+  shareLinks        ShareLink[]
+  scanFindings      StorageScanFinding[]
 
   @@index([caseId])
   @@index([classification])
@@ -211,107 +295,190 @@ model DocumentVersion {
   createdAt     DateTime @default(now())
   notes         String?
 
-  signatures DigitalSignature[]
+  signatures   DigitalSignature[]
+  scanFindings StorageScanFinding[]
 
   @@unique([documentId, versionNo])
   @@index([documentId])
 }
 
 model DocumentAccess {
-  id         String   @id @default(cuid())
-  documentId String
-  document   Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
-  userId     String
-  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  grantedAt  DateTime @default(now())
-  expiresAt  DateTime?
+  id           String        @id @default(cuid())
+  documentId   String
+  document     Document      @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  userId       String
+  user         User          @relation("GrantedUser", fields: [userId], references: [id], onDelete: Cascade)
+  grantedById  String?
+  grantedBy    User?         @relation("GrantorUser", fields: [grantedById], references: [id])
+  scopes       AccessScope[] @default([VIEW_METADATA, PREVIEW, DOWNLOAD])
+  grantedAt    DateTime      @default(now())
+  expiresAt    DateTime?
+  isActive     Boolean       @default(true)
+  revokedAt    DateTime?
+  revokedById  String?
+  revokedBy    User?         @relation("RevokerUser", fields: [revokedById], references: [id])
+  revokeReason String?
 
-  @@unique([documentId, userId])
+  @@index([documentId, userId, isActive])
+  @@index([expiresAt, isActive])
   @@index([userId])
 }
 
 model AccessRequest {
-  id           String              @id @default(cuid())
-  documentId   String
-  document     Document            @relation(fields: [documentId], references: [id], onDelete: Cascade)
-  requestedById String
-  requestedBy   User               @relation("RequestedBy", fields: [requestedById], references: [id])
-  decidedById   String?
-  decidedBy     User?              @relation("DecidedBy", fields: [decidedById], references: [id])
-  status        AccessRequestStatus @default(PENDING)
-  reason        String?
-  expiresAt     DateTime?
-  createdAt     DateTime            @default(now())
-  decidedAt     DateTime?
+  id              String              @id @default(cuid())
+  documentId      String
+  document        Document            @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  requestedById   String
+  requestedBy     User                @relation("RequestedBy", fields: [requestedById], references: [id])
+  requestedScopes AccessScope[]       @default([VIEW_METADATA, PREVIEW, DOWNLOAD])
+  decidedById     String?
+  decidedBy       User?               @relation("DecidedBy", fields: [decidedById], references: [id])
+  status          AccessRequestStatus @default(PENDING)
+  reason          String?
+  durationHours   Int                 @default(24)
+  courtOrderRef   String?
+  expiresAt       DateTime?
+  createdAt       DateTime            @default(now())
+  decidedAt       DateTime?
+  decisionNotes   String?
+  accessGrantId   String?             @unique
 
   @@index([documentId])
   @@index([status])
 }
 
 model AuditLog {
-  id         String      @id @default(cuid())
-  action     AuditAction
-  actorId    String?
-  actor      User?       @relation(fields: [actorId], references: [id])
-  documentId String?
-  document   Document?   @relation(fields: [documentId], references: [id])
-  caseId     String?
+  id           String        @id @default(cuid())
+  action       AuditAction
+  outcome      AuditOutcome  @default(SUCCESS)
+  actorId      String?
+  actor        User?         @relation(fields: [actorId], references: [id])
+  documentId   String?
+  document     Document?     @relation(fields: [documentId], references: [id])
+  evidenceId   String?
+  evidence     EvidenceItem? @relation(fields: [evidenceId], references: [id])
+  caseId       String?
   targetUserId String?
-  notes      String?
-  metadata   Json?
-  createdAt  DateTime    @default(now())
+  notes        String?
+  metadata     Json?
+  previousHash String?       @db.VarChar(64)
+  hash         String?       @db.VarChar(64)
+  createdAt    DateTime      @default(now())
 
   @@index([actorId])
   @@index([documentId])
+  @@index([evidenceId])
   @@index([action])
   @@index([createdAt])
+  @@index([hash])
 }
 
 model EvidenceItem {
-  id           String         @id @default(cuid())
-  caseId       String
-  case         Case           @relation(fields: [caseId], references: [id], onDelete: Cascade)
-  name         String
-  description  String?
-  status       EvidenceStatus @default(COLLECTED)
+  id                 String             @id @default(cuid())
+  caseId             String
+  case               Case               @relation(fields: [caseId], references: [id], onDelete: Cascade)
+  name               String
+  description        String?
+  status             EvidenceStatus     @default(COLLECTED)
   currentCustodianId String?
-  createdAt    DateTime       @default(now())
-  updatedAt    DateTime       @updatedAt
+  qrTokenHash        String?            @unique @db.VarChar(64)
+  qrTokenEncrypted   String?            @db.Text
+  qrRotatedAt        DateTime?
+  createdAt          DateTime           @default(now())
+  updatedAt          DateTime           @updatedAt
 
   transfers EvidenceTransfer[]
+  auditLogs AuditLog[]
 
   @@index([caseId])
+  @@index([qrTokenHash])
 }
 
 model EvidenceTransfer {
-  id          String       @id @default(cuid())
-  evidenceId  String
-  evidence    EvidenceItem @relation(fields: [evidenceId], references: [id], onDelete: Cascade)
-  fromUserId  String?
-  fromUser    User?        @relation("TransferFrom", fields: [fromUserId], references: [id])
-  toUserId    String
-  toUser      User         @relation("TransferTo", fields: [toUserId], references: [id])
-  notes       String?
-  transferredAt DateTime   @default(now())
+  id               String                 @id @default(cuid())
+  evidenceId       String
+  evidence         EvidenceItem           @relation(fields: [evidenceId], references: [id], onDelete: Cascade)
+  fromUserId       String?
+  fromUser         User?                  @relation("TransferFrom", fields: [fromUserId], references: [id])
+  toUserId         String
+  toUser           User                   @relation("TransferTo", fields: [toUserId], references: [id])
+  status           CustodyTransferStatus  @default(COMPLETED)
+  purpose          String?
+  sealNumber       String?
+  packageCondition PackageCondition       @default(SEALED_INTACT)
+  location         String?
+  notes            String?
+  receiptNumber    String?                @unique @db.VarChar(64)
+  decidedAt        DateTime?
+  rejectionReason  String?
+  transferredAt    DateTime               @default(now())
 
+  @@index([evidenceId, status])
+  @@index([toUserId, status])
+  @@index([fromUserId, status])
   @@index([evidenceId])
+  @@index([receiptNumber])
+}
+
+model UserSigningKey {
+  id             String             @id @default(cuid())
+  userId         String
+  user           User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  keyId          String             @unique
+  publicKeyPem   String             @db.Text
+  keyFingerprint String             @db.VarChar(64)
+  algorithm      String             @default("ECDSA-P256-SHA256")
+  label          String?
+  isActive       Boolean            @default(true)
+  createdAt      DateTime           @default(now())
+  revokedAt      DateTime?
+
+  signatures     DigitalSignature[]
+
+  @@index([userId, isActive])
+  @@index([keyFingerprint])
 }
 
 model DigitalSignature {
-  id               String          @id @default(cuid())
-  documentId       String
-  document         Document        @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  id                String          @id @default(cuid())
+  documentId        String
+  document          Document        @relation(fields: [documentId], references: [id], onDelete: Cascade)
   documentVersionId String
-  documentVersion  DocumentVersion @relation(fields: [documentVersionId], references: [id], onDelete: Cascade)
-  signerId         String
-  signer           User            @relation(fields: [signerId], references: [id])
-  algorithm        String          @default("RSA-SHA256-PROTOTYPE")
-  signatureValue   String
-  status           SignatureStatus @default(SIGNED)
-  signedAt         DateTime        @default(now())
-  verifiedAt       DateTime?
+  documentVersion   DocumentVersion @relation(fields: [documentVersionId], references: [id], onDelete: Cascade)
+  signerId          String
+  signer            User            @relation(fields: [signerId], references: [id])
+  keyId             String?
+  userSigningKey    UserSigningKey? @relation(fields: [keyId], references: [id], onDelete: SetNull)
+  publicKeyPem      String?         @db.Text
+  keyFingerprint    String?         @db.VarChar(64)
+  certificateNumber String?         @unique
+  challengeNonce    String?         @db.VarChar(64)
+  signedPayloadJson String?         @db.Text
+  algorithm         String          @default("ECDSA-P256-SHA256")
+  signatureValue    String          @db.Text
+  status            SignatureStatus @default(SIGNED)
+  signedAt          DateTime        @default(now())
+  verifiedAt        DateTime?
 
   @@index([documentId])
+  @@index([documentVersionId])
+  @@index([signerId])
+  @@index([keyFingerprint])
+}
+
+model SigningChallenge {
+  id                String    @id @default(cuid())
+  nonce             String    @unique @db.VarChar(64)
+  userId            String
+  documentId        String
+  documentVersionId String
+  versionSha256     String    @db.VarChar(64)
+  issuedAt          DateTime  @default(now())
+  expiresAt         DateTime
+  consumedAt        DateTime?
+
+  @@index([nonce, userId])
+  @@index([expiresAt])
 }
 
 model AIQuery {
@@ -341,37 +508,49 @@ model ExtractedEntity {
 }
 
 model InvestigationTimelineEvent {
-  id          String   @id @default(cuid())
+  id          String                @id @default(cuid())
   caseId      String
-  case        Case     @relation(fields: [caseId], references: [id], onDelete: Cascade)
+  case        Case                  @relation(fields: [caseId], references: [id], onDelete: Cascade)
+  category    TimelineEventCategory @default(INVESTIGATOR_NOTE)
   title       String
   description String?
-  occurredAt  DateTime
+  occurredAt  DateTime              @default(now())
   createdById String?
-  createdBy   User?    @relation(fields: [createdById], references: [id])
-  createdAt   DateTime @default(now())
+  createdBy   User?                 @relation(fields: [createdById], references: [id])
+  metadata    Json?
+  isMilestone Boolean               @default(false)
+  createdAt   DateTime              @default(now())
 
-  @@index([caseId])
+  @@index([caseId, occurredAt])
+  @@index([category])
 }
 
 model Notification {
-  id        String           @id @default(cuid())
+  id        String               @id @default(cuid())
   userId    String
-  user      User             @relation(fields: [userId], references: [id], onDelete: Cascade)
-  type      NotificationType
+  user      User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type      NotificationType     @default(GENERAL)
+  priority  NotificationPriority @default(INFO)
+  category  String               @default("SYSTEM")
   title     String
   message   String
-  isRead    Boolean          @default(false)
-  createdAt DateTime         @default(now())
+  actionUrl String?
+  isRead    Boolean              @default(false)
+  createdAt DateTime             @default(now())
 
+  @@index([userId, isRead])
   @@index([userId])
+  @@index([createdAt])
 }
 
 model ShareLink {
   id           String    @id @default(cuid())
   documentId   String
   document     Document  @relation(fields: [documentId], references: [id], onDelete: Cascade)
-  token        String    @unique
+  token        String?   @unique
+  tokenHash    String?   @unique @db.VarChar(64)
+  pinHash      String?
+  isRevoked    Boolean   @default(false)
   createdById  String
   createdBy    User      @relation(fields: [createdById], references: [id])
   expiresAt    DateTime
@@ -379,5 +558,87 @@ model ShareLink {
   useCount     Int       @default(0)
   createdAt    DateTime  @default(now())
 
+  @@index([tokenHash])
   @@index([documentId])
 }
+
+model StorageScanRun {
+  id                String            @id @default(cuid())
+  initiatedById     String
+  initiatedBy       User              @relation(fields: [initiatedById], references: [id])
+  caseId            String?
+  case              Case?             @relation(fields: [caseId], references: [id], onDelete: SetNull)
+  status            StorageScanStatus @default(IN_PROGRESS)
+  totalVersions     Int               @default(0)
+  processedVersions Int               @default(0)
+  verifiedCount     Int               @default(0)
+  mismatchCount     Int               @default(0)
+  missingCount      Int               @default(0)
+  unreadableCount   Int               @default(0)
+  errorCount        Int               @default(0)
+  startedAt         DateTime          @default(now())
+  completedAt       DateTime?
+  heartbeatAt       DateTime          @default(now())
+  elapsedMs         Int?
+  errorMessage      String?
+
+  findings          StorageScanFinding[]
+
+  @@index([initiatedById])
+  @@index([caseId])
+  @@index([startedAt])
+  @@index([status])
+}
+
+model StorageScanFinding {
+  id                String           @id @default(cuid())
+  scanRunId         String
+  scanRun           StorageScanRun   @relation(fields: [scanRunId], references: [id], onDelete: Cascade)
+  documentId        String?
+  document          Document?        @relation(fields: [documentId], references: [id], onDelete: SetNull)
+  documentVersionId String?
+  documentVersion   DocumentVersion? @relation(fields: [documentVersionId], references: [id], onDelete: SetNull)
+  caseId            String?
+  documentName      String
+  versionNo         Int
+  originalName      String
+  sizeBytes         Int
+  status            FindingStatus
+  expectedSha256    String           @db.VarChar(64)
+  actualSha256      String?          @db.VarChar(64)
+  reason            String?
+  scannedAt         DateTime         @default(now())
+
+  @@index([scanRunId])
+  @@index([documentId])
+  @@index([documentVersionId])
+  @@index([caseId])
+  @@index([status])
+  @@index([scannedAt])
+}
+
+model CourtBundleExport {
+  id                 String            @id @default(cuid())
+  caseId             String
+  case               Case              @relation(fields: [caseId], references: [id], onDelete: Cascade)
+  bundleNumber       String            @unique @db.VarChar(64)
+  courtRefNumber     String?           @db.VarChar(100)
+  merkleRootHash     String?           @db.VarChar(64)
+  authorityKeyFp     String?           @db.VarChar(64)
+  authoritySignature String?           @db.Text
+  zipStorageKey      String?
+  zipSizeBytes       Int?
+  status             CourtBundleStatus @default(GENERATING)
+  errorMessage       String?           @db.Text
+  manifestJson       Json?
+  exportedById       String
+  exportedBy         User              @relation(fields: [exportedById], references: [id])
+  createdAt          DateTime          @default(now())
+  completedAt        DateTime?
+
+  @@index([caseId, status])
+  @@index([exportedById])
+  @@index([merkleRootHash])
+  @@index([bundleNumber])
+}
+
