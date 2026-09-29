@@ -34,61 +34,60 @@ export default function Login() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-vault-950 px-4">
+    <div className="min-h-screen flex items-center justify-center bg-slate-50 dark:bg-vault-950 px-4 transition-colors duration-200">
       <div className="w-full max-w-md">
-        <div className="flex items-center gap-2 mb-6 justify-center">
-          <ShieldCheck className="text-vault-300" size={28} />
-          <h1 className="text-2xl font-semibold tracking-tight text-white">NyayaVault</h1>
+        <div className="flex flex-col items-center gap-2 mb-6 justify-center">
+          <img src="/logo.png" alt="NyayaVault" className="h-16 object-contain drop-shadow-md dark:bg-white dark:rounded-2xl dark:px-4 dark:py-2 dark:shadow-none" />
         </div>
-        <p className="text-center text-vault-400 text-sm mb-6">
+        <p className="text-center text-slate-500 dark:text-vault-400 font-medium text-sm mb-8">
           Secure Digital Document Management &mdash; DEMO / SYNTHETIC DATA (SIH26190)
         </p>
 
         <form
           onSubmit={handleSubmit}
-          className="bg-vault-900 border border-vault-800 rounded-xl p-6 space-y-4"
+          className="bg-white dark:bg-vault-900 border border-slate-200 dark:border-vault-800 rounded-2xl p-8 space-y-5 shadow-lg transition-colors"
         >
           <div>
-            <label className="block text-xs font-medium text-vault-300 mb-1">Email</label>
+            <label className="block text-xs font-semibold text-slate-700 dark:text-vault-300 mb-1.5 uppercase tracking-wide">Email</label>
             <input
               type="email"
               required
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="w-full rounded-lg bg-vault-950 border border-vault-700 px-3 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-vault-500"
+              className="w-full rounded-lg bg-slate-50 dark:bg-vault-950 border border-slate-200 dark:border-vault-700 px-3 py-2.5 text-sm text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-vault-500 transition-colors"
               placeholder="officer@nyayavault.demo"
             />
           </div>
           <div>
-            <label className="block text-xs font-medium text-vault-300 mb-1">Password</label>
+            <label className="block text-xs font-semibold text-slate-700 dark:text-vault-300 mb-1.5 uppercase tracking-wide">Password</label>
             <input
               type="password"
               required
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="w-full rounded-lg bg-vault-950 border border-vault-700 px-3 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-vault-500"
+              className="w-full rounded-lg bg-slate-50 dark:bg-vault-950 border border-slate-200 dark:border-vault-700 px-3 py-2.5 text-sm text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-vault-500 transition-colors"
             />
           </div>
-          {error && <p className="text-red-400 text-sm">{error}</p>}
+          {error && <p className="text-red-600 dark:text-red-400 text-sm font-medium">{error}</p>}
           <button
             type="submit"
             disabled={submitting}
-            className="w-full rounded-lg bg-vault-500 hover:bg-vault-400 transition text-white text-sm font-medium py-2 disabled:opacity-50"
+            className="w-full rounded-lg bg-blue-600 hover:bg-blue-700 dark:bg-vault-500 dark:hover:bg-vault-400 transition-colors text-white text-sm font-medium py-2.5 shadow-md disabled:opacity-50 mt-2"
           >
             {submitting ? "Signing in..." : "Sign in"}
           </button>
         </form>
 
-        <div className="mt-6 bg-vault-900/60 border border-vault-800 rounded-xl p-4">
-          <p className="text-xs text-vault-400 mb-2">Demo accounts (password: Demo@1234)</p>
-          <div className="grid grid-cols-1 gap-1">
+        <div className="mt-8 bg-slate-100 dark:bg-vault-900/60 border border-slate-200 dark:border-vault-800 rounded-2xl p-5 shadow-inner">
+          <p className="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-vault-400 mb-3">Demo accounts (password: Demo@1234)</p>
+          <div className="grid grid-cols-1 gap-2">
             {DEMO_ACCOUNTS.map((acc) => (
               <button
                 key={acc.email}
                 onClick={() => setEmail(acc.email)}
-                className="text-left text-xs text-vault-200 hover:text-white hover:bg-vault-800 rounded px-2 py-1 transition"
+                className="text-left text-xs font-medium text-slate-700 dark:text-vault-200 hover:bg-white dark:hover:bg-slate-100 dark:bg-vault-800 border border-transparent hover:border-slate-300 dark:hover:border-slate-300 dark:border-vault-700 shadow-sm hover:shadow-md rounded-lg px-3 py-2 transition-all"
               >
-                {acc.label} &mdash; <span className="text-vault-400">{acc.email}</span>
+                {acc.label} &mdash; <span className="text-slate-400 dark:text-vault-400 font-normal">{acc.email}</span>
               </button>
             ))}
           </div>

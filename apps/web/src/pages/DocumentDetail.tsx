@@ -6,6 +6,7 @@ import { PageHeader, Card, Badge } from "../components/ui";
 import CustodyTimeline, { auditLabel, auditTone, TimelineEvent } from "../components/CustodyTimeline";
 import AccessDeniedPanel from "../components/AccessDeniedPanel";
 import SharePanel from "../components/SharePanel";
+import AIAnalysisPanel from "../components/AIAnalysisPanel";
 
 const UPLOAD_ROLES = ["ADMIN", "INVESTIGATING_OFFICER", "SENIOR_OFFICER", "LEGAL_OFFICER"];
 
@@ -136,7 +137,7 @@ export default function DocumentDetail() {
     }
   }
 
-  if (loading) return <div className="p-8 text-vault-400 text-sm">Loading...</div>;
+  if (loading) return <div className="p-8 text-slate-500 dark:text-vault-400 text-sm">Loading...</div>;
 
   if (denied) {
     return (
@@ -181,7 +182,7 @@ export default function DocumentDetail() {
 
         <div className="grid grid-cols-4 gap-4">
           <Card title="Classification"><Badge text={doc.classification} /></Card>
-          <Card title="Latest Version"><span className="text-sm text-vault-200">v{doc.latestVersionNo}</span></Card>
+          <Card title="Latest Version"><span className="text-sm text-slate-700 dark:text-vault-200">v{doc.latestVersionNo}</span></Card>
           <Card title="Integrity Status">
             <Badge
               text={doc.integrityStatus}
@@ -192,12 +193,12 @@ export default function DocumentDetail() {
         </div>
 
         <Card title="SHA-256 (latest version)">
-          <code className="text-xs text-vault-300 break-all">{latestVersion?.sha256}</code>
+          <code className="text-xs text-slate-600 dark:text-vault-300 break-all">{latestVersion?.sha256}</code>
           <div className="mt-3 flex flex-wrap items-center gap-3">
             <button
               onClick={handleVerify}
               disabled={verifying}
-              className="rounded-lg bg-vault-700 hover:bg-vault-600 transition text-white text-xs font-medium px-3 py-1.5 disabled:opacity-50"
+              className="rounded-lg bg-slate-700 dark:bg-vault-700 hover:bg-vault-600 transition text-white text-xs font-medium px-3 py-1.5 disabled:opacity-50"
             >
               {verifying ? "Verifying..." : "Verify Integrity"}
             </button>
@@ -211,10 +212,12 @@ export default function DocumentDetail() {
           </div>
         </Card>
 
+        <AIAnalysisPanel documentId={doc.id} />
+
         <Card title="Version History">
           {downloadError && <p className="text-red-400 text-sm mb-2">{downloadError}</p>}
           <table className="w-full text-sm">
-            <thead className="text-vault-400 text-xs uppercase">
+            <thead className="text-slate-500 dark:text-vault-400 text-xs uppercase">
               <tr>
                 <th className="text-left py-1">Version</th>
                 <th className="text-left py-1">File</th>
@@ -223,17 +226,17 @@ export default function DocumentDetail() {
                 <th className="text-left py-1"></th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-vault-800">
+            <tbody className="divide-y divide-slate-100 dark:divide-vault-800">
               {doc.versions.map((v: any) => (
                 <tr key={v.id}>
-                  <td className="py-2 text-vault-200">v{v.versionNo}</td>
-                  <td className="py-2 text-vault-400">{v.originalName}</td>
-                  <td className="py-2 text-vault-400">{v.createdBy?.name}</td>
-                  <td className="py-2 text-vault-500 text-xs">{new Date(v.createdAt).toLocaleString()}</td>
+                  <td className="py-2 text-slate-700 dark:text-vault-200">v{v.versionNo}</td>
+                  <td className="py-2 text-slate-500 dark:text-vault-400">{v.originalName}</td>
+                  <td className="py-2 text-slate-500 dark:text-vault-400">{v.createdBy?.name}</td>
+                  <td className="py-2 text-slate-500 dark:text-vault-500 text-xs">{new Date(v.createdAt).toLocaleString()}</td>
                   <td className="py-2">
                     <button
                       onClick={() => handleDownload(v.versionNo)}
-                      className="text-xs text-vault-300 hover:text-white hover:underline"
+                      className="text-xs text-slate-600 dark:text-vault-300 hover:text-white hover:underline"
                     >
                       Download
                     </button>
@@ -254,7 +257,7 @@ export default function DocumentDetail() {
           <Card title="Upload New Version">
             <form onSubmit={handleNewVersion} className="space-y-3">
               <div>
-                <label className="block text-xs text-vault-400 mb-1">
+                <label className="block text-xs text-slate-500 dark:text-vault-400 mb-1">
                   File (PDF, JPG, PNG, DOC, DOCX &mdash; max 25MB)
                 </label>
                 <input
@@ -262,15 +265,15 @@ export default function DocumentDetail() {
                   type="file"
                   accept=".pdf,.jpg,.jpeg,.png,.doc,.docx"
                   onChange={(e) => setNewVersionFile(e.target.files?.[0] ?? null)}
-                  className="w-full text-sm text-vault-300"
+                  className="w-full text-sm text-slate-600 dark:text-vault-300"
                 />
               </div>
               <div>
-                <label className="block text-xs text-vault-400 mb-1">Notes (optional)</label>
+                <label className="block text-xs text-slate-500 dark:text-vault-400 mb-1">Notes (optional)</label>
                 <input
                   value={versionNotes}
                   onChange={(e) => setVersionNotes(e.target.value)}
-                  className="w-full rounded-lg bg-vault-950 border border-vault-700 px-3 py-2 text-sm text-white"
+                  className="w-full rounded-lg bg-white dark:bg-vault-950 border border-slate-300 dark:border-vault-700 px-3 py-2 text-sm text-slate-900 dark:text-white"
                   placeholder="What changed in this version?"
                 />
               </div>
@@ -278,7 +281,7 @@ export default function DocumentDetail() {
               <button
                 type="submit"
                 disabled={!newVersionFile || uploading}
-                className="rounded-lg bg-vault-500 hover:bg-vault-400 transition text-white text-sm font-medium px-4 py-2 disabled:opacity-50"
+                className="rounded-lg bg-blue-600 dark:bg-vault-500 hover:bg-blue-700 dark:hover:bg-vault-400 transition text-white text-sm font-medium px-4 py-2 disabled:opacity-50"
               >
                 {uploading ? "Uploading..." : "Upload New Version"}
               </button>
