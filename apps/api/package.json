@@ -12,7 +12,6 @@
     "prisma:migrate": "prisma migrate dev",
     "seed": "tsx prisma/seed.ts"
   },
-  },
   "prisma": {
     "seed": "tsx prisma/seed.ts"
   },
