@@ -17,6 +17,9 @@ import Notifications from "./pages/Notifications";
 import Evidence from "./pages/Evidence";
 import EvidenceDetail from "./pages/EvidenceDetail";
 import SharePublic from "./pages/SharePublic";
+import Signatures from "./pages/Signatures";
+import Security from "./pages/Security";
+import VerifyEvidence from "./pages/VerifyEvidence";
 
 export default function App() {
   return (
@@ -25,6 +28,7 @@ export default function App() {
         <Routes>
           <Route path="/login" element={<Login />} />
           <Route path="/share/:token" element={<SharePublic />} />
+          <Route path="/verify/evidence" element={<VerifyEvidence />} />
           <Route
             element={
               <ProtectedRoute>
@@ -42,10 +46,10 @@ export default function App() {
             <Route path="/ai" element={<ComingSoon title="AI Case Assistant" phase="Phase 5" />} />
             <Route path="/audit" element={<Audit />} />
             <Route path="/access-requests" element={<AccessRequests />} />
-            <Route path="/signatures" element={<ComingSoon title="Signatures" phase="Phase 4" />} />
+            <Route path="/signatures" element={<Signatures />} />
             <Route path="/notifications" element={<Notifications />} />
             <Route path="/users" element={<UsersPage />} />
-            <Route path="/security" element={<ComingSoon title="Security Center" phase="Phase 4" />} />
+            <Route path="/security" element={<Security />} />
             <Route path="/settings" element={<ComingSoon title="Settings" phase="Phase 6" />} />
           </Route>
           <Route path="/" element={<Navigate to="/dashboard" replace />} />

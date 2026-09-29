@@ -231,7 +231,13 @@ router.get("/:id", requireAuth, async (req, res) => {
       uploadedBy: { select: { name: true } },
       versions: {
         orderBy: { versionNo: "desc" },
-        include: { createdBy: { select: { name: true } } },
+        include: {
+          createdBy: { select: { name: true } },
+          signatures: {
+            orderBy: { signedAt: "desc" },
+            include: { signer: { select: { id: true, name: true, role: true } } },
+          },
+        },
       },
     },
   });
