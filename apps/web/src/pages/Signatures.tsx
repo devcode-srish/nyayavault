@@ -67,21 +67,21 @@ export default function Signatures() {
 
       <div className="p-8 max-w-7xl mx-auto space-y-6">
         {/* Top Info Banner */}
-        <div className="bg-vault-900/60 border border-vault-800 rounded-xl p-5 flex items-start gap-4">
+        <div className="bg-white dark:bg-vault-900/60 border border-slate-200 dark:border-vault-800 rounded-xl p-5 flex items-start gap-4">
           <div className="p-3 bg-indigo-500/10 border border-indigo-500/20 rounded-lg text-indigo-400 font-mono text-xl">
             ✍️
           </div>
           <div>
             <h3 className="text-white font-semibold text-base">Cryptographic Non-Repudiation & Section 65B Drafts</h3>
-            <p className="text-vault-400 text-sm mt-1 leading-relaxed">
-              Signatures are bound to the immutable <code className="text-vault-200">DocumentVersion.sha256</code> using asymmetric ECDSA/RSA cryptography and server-issued challenge nonces. Certificates generated here serve as official technical drafts for Section 65B compliance under the Indian Evidence Act / BSA 2023.
+            <p className="text-slate-500 dark:text-vault-400 text-sm mt-1 leading-relaxed">
+              Signatures are bound to the immutable <code className="text-slate-700 dark:text-vault-200">DocumentVersion.sha256</code> using asymmetric ECDSA/RSA cryptography and server-issued challenge nonces. Certificates generated here serve as official technical drafts for Section 65B compliance under the Indian Evidence Act / BSA 2023.
             </p>
           </div>
         </div>
 
         {/* Signatures List Table */}
         <Card title={`Digital Signatures Ledger (${signatures.length})`}>
-          {loading && <p className="text-vault-400 text-sm p-4">Loading cryptographic signatures...</p>}
+          {loading && <p className="text-slate-500 dark:text-vault-400 text-sm p-4">Loading cryptographic signatures...</p>}
           {error && <p className="text-red-400 text-sm p-4">{error}</p>}
 
           {!loading && signatures.length === 0 && (
@@ -91,7 +91,7 @@ export default function Signatures() {
           {!loading && signatures.length > 0 && (
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
-                <thead className="bg-vault-800/40 text-vault-400 text-xs uppercase border-b border-vault-800">
+                <thead className="bg-vault-800/40 text-slate-500 dark:text-vault-400 text-xs uppercase border-b border-slate-200 dark:border-vault-800">
                   <tr>
                     <th className="text-left px-4 py-3">Certificate / Ref</th>
                     <th className="text-left px-4 py-3">Document</th>
@@ -103,7 +103,7 @@ export default function Signatures() {
                     <th className="text-right px-4 py-3">Actions</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-vault-800/60">
+                <tbody className="divide-y divide-slate-100 dark:divide-vault-800/60">
                   {signatures.map((sig) => {
                     const verification = verifyStatus[sig.id];
                     return (
@@ -118,19 +118,19 @@ export default function Signatures() {
                           >
                             {sig.document?.name || "Document"}
                           </Link>
-                          <span className="text-vault-500 text-xs ml-2">v{sig.documentVersion?.versionNo}</span>
+                          <span className="text-slate-500 dark:text-vault-500 text-xs ml-2">v{sig.documentVersion?.versionNo}</span>
                         </td>
-                        <td className="px-4 py-3 text-vault-400 text-xs">
+                        <td className="px-4 py-3 text-slate-500 dark:text-vault-400 text-xs">
                           {sig.document?.case?.caseNumber || "—"}
                         </td>
-                        <td className="px-4 py-3 text-vault-300">
+                        <td className="px-4 py-3 text-slate-600 dark:text-vault-300">
                           <div>{sig.signer?.name || "Signer"}</div>
-                          <div className="text-vault-500 text-xs">{sig.signer?.role}</div>
+                          <div className="text-slate-500 dark:text-vault-500 text-xs">{sig.signer?.role}</div>
                         </td>
-                        <td className="px-4 py-3 font-mono text-xs text-vault-400">
+                        <td className="px-4 py-3 font-mono text-xs text-slate-500 dark:text-vault-400">
                           {sig.algorithm}
                         </td>
-                        <td className="px-4 py-3 text-vault-400 text-xs">
+                        <td className="px-4 py-3 text-slate-500 dark:text-vault-400 text-xs">
                           {new Date(sig.signedAt).toLocaleString()}
                         </td>
                         <td className="px-4 py-3">
@@ -148,7 +148,7 @@ export default function Signatures() {
                           <button
                             onClick={() => handleVerify(sig.id)}
                             disabled={verifyingId === sig.id}
-                            className="px-2.5 py-1 text-xs rounded bg-vault-800 hover:bg-vault-700 text-vault-200 transition-colors"
+                            className="px-2.5 py-1 text-xs rounded bg-slate-100 dark:bg-vault-800 hover:bg-slate-700 dark:bg-vault-700 text-slate-700 dark:text-vault-200 transition-colors"
                           >
                             {verifyingId === sig.id ? "Verifying..." : "Verify"}
                           </button>
@@ -171,16 +171,16 @@ export default function Signatures() {
         {/* Section 65B Certificate Modal */}
         {selectedCert && (
           <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4 z-50 overflow-y-auto">
-            <div className="bg-vault-900 border border-vault-700 rounded-2xl max-w-3xl w-full p-8 shadow-2xl space-y-6 my-8">
+            <div className="bg-white dark:bg-vault-900 border border-slate-300 dark:border-vault-700 rounded-2xl max-w-3xl w-full p-8 shadow-2xl space-y-6 my-8">
               {/* Certificate Header */}
-              <div className="text-center border-b border-vault-800 pb-6">
+              <div className="text-center border-b border-slate-200 dark:border-vault-800 pb-6">
                 <div className="inline-block px-3 py-1 bg-amber-500/10 border border-amber-500/30 text-amber-400 text-xs font-semibold uppercase rounded-full mb-3">
                   {selectedCert.certificateHeader.disclaimer}
                 </div>
                 <h2 className="text-2xl font-bold text-white tracking-wide uppercase">
                   {selectedCert.certificateHeader.title}
                 </h2>
-                <p className="text-vault-400 text-xs mt-1 italic">
+                <p className="text-slate-500 dark:text-vault-400 text-xs mt-1 italic">
                   {selectedCert.certificateHeader.statutoryReference}
                 </p>
                 <div className="mt-3 font-mono text-sm text-indigo-400 font-semibold">
@@ -189,29 +189,29 @@ export default function Signatures() {
               </div>
 
               {/* Case & Electronic Record Details */}
-              <div className="grid grid-cols-2 gap-4 text-sm bg-vault-950/60 p-4 rounded-xl border border-vault-800">
+              <div className="grid grid-cols-2 gap-4 text-sm bg-white dark:bg-vault-950/60 p-4 rounded-xl border border-slate-200 dark:border-vault-800">
                 <div>
-                  <div className="text-vault-500 text-xs">Case Reference</div>
+                  <div className="text-slate-500 dark:text-vault-500 text-xs">Case Reference</div>
                   <div className="text-white font-medium">{selectedCert.caseDetails.caseNumber} - {selectedCert.caseDetails.caseTitle}</div>
                 </div>
                 <div>
-                  <div className="text-vault-500 text-xs">Document Name & Version</div>
+                  <div className="text-slate-500 dark:text-vault-500 text-xs">Document Name & Version</div>
                   <div className="text-white font-medium">{selectedCert.electronicRecord.documentName} (v{selectedCert.electronicRecord.versionNo})</div>
                 </div>
                 <div>
-                  <div className="text-vault-500 text-xs">Original Filename & Size</div>
-                  <div className="text-vault-300">{selectedCert.electronicRecord.originalFilename} ({selectedCert.electronicRecord.sizeBytes} bytes)</div>
+                  <div className="text-slate-500 dark:text-vault-500 text-xs">Original Filename & Size</div>
+                  <div className="text-slate-600 dark:text-vault-300">{selectedCert.electronicRecord.originalFilename} ({selectedCert.electronicRecord.sizeBytes} bytes)</div>
                 </div>
                 <div>
-                  <div className="text-vault-500 text-xs">Generated At</div>
-                  <div className="text-vault-300">{new Date(selectedCert.certificateHeader.generatedAt).toLocaleString()}</div>
+                  <div className="text-slate-500 dark:text-vault-500 text-xs">Generated At</div>
+                  <div className="text-slate-600 dark:text-vault-300">{new Date(selectedCert.certificateHeader.generatedAt).toLocaleString()}</div>
                 </div>
               </div>
 
               {/* Cryptographic Proof Section */}
-              <div className="bg-vault-950/80 p-4 rounded-xl border border-vault-800 space-y-3 font-mono text-xs">
+              <div className="bg-white dark:bg-vault-950/80 p-4 rounded-xl border border-slate-200 dark:border-vault-800 space-y-3 font-mono text-xs">
                 <div>
-                  <div className="text-vault-500 text-[11px] uppercase font-sans">Authoritative SHA-256 Checksum</div>
+                  <div className="text-slate-500 dark:text-vault-500 text-[11px] uppercase font-sans">Authoritative SHA-256 Checksum</div>
                   <div className="text-emerald-400 break-all select-all font-bold">
                     {selectedCert.electronicRecord.sha256Checksum}
                   </div>
@@ -219,23 +219,23 @@ export default function Signatures() {
 
                 {selectedCert.cryptographicSignature ? (
                   <>
-                    <div className="grid grid-cols-2 gap-2 pt-2 border-t border-vault-800/80">
+                    <div className="grid grid-cols-2 gap-2 pt-2 border-t border-slate-200 dark:border-vault-800/80">
                       <div>
-                        <div className="text-vault-500 text-[11px] uppercase font-sans">Digital Signer</div>
+                        <div className="text-slate-500 dark:text-vault-500 text-[11px] uppercase font-sans">Digital Signer</div>
                         <div className="text-white">{selectedCert.cryptographicSignature.signerName} ({selectedCert.cryptographicSignature.signerRole})</div>
                       </div>
                       <div>
-                        <div className="text-vault-500 text-[11px] uppercase font-sans">Algorithm</div>
+                        <div className="text-slate-500 dark:text-vault-500 text-[11px] uppercase font-sans">Algorithm</div>
                         <div className="text-indigo-400">{selectedCert.cryptographicSignature.algorithm}</div>
                       </div>
                     </div>
                     <div>
-                      <div className="text-vault-500 text-[11px] uppercase font-sans">Public Key Fingerprint (SHA-256)</div>
-                      <div className="text-vault-300 break-all">{selectedCert.cryptographicSignature.keyFingerprint || "N/A"}</div>
+                      <div className="text-slate-500 dark:text-vault-500 text-[11px] uppercase font-sans">Public Key Fingerprint (SHA-256)</div>
+                      <div className="text-slate-600 dark:text-vault-300 break-all">{selectedCert.cryptographicSignature.keyFingerprint || "N/A"}</div>
                     </div>
                     <div>
-                      <div className="text-vault-500 text-[11px] uppercase font-sans">Cryptographic Signature Value</div>
-                      <div className="text-vault-400 break-all max-h-16 overflow-y-auto bg-vault-900 p-2 rounded border border-vault-800 select-all">
+                      <div className="text-slate-500 dark:text-vault-500 text-[11px] uppercase font-sans">Cryptographic Signature Value</div>
+                      <div className="text-slate-500 dark:text-vault-400 break-all max-h-16 overflow-y-auto bg-white dark:bg-vault-900 p-2 rounded border border-slate-200 dark:border-vault-800 select-all">
                         {selectedCert.cryptographicSignature.signatureValue}
                       </div>
                     </div>
@@ -248,7 +248,7 @@ export default function Signatures() {
               </div>
 
               {/* Legal Notice */}
-              <p className="text-vault-500 text-[11px] leading-relaxed text-center">
+              <p className="text-slate-500 dark:text-vault-500 text-[11px] leading-relaxed text-center">
                 This document is generated by the NyayaVault Digital Evidence System for verification purposes. For production court submissions, this certificate must be signed by the competent officer in charge of the computer system pursuant to Section 65B(4) of the Indian Evidence Act / Section 63 of the BSA.
               </p>
 
@@ -256,7 +256,7 @@ export default function Signatures() {
               <div className="flex justify-end gap-3 pt-2">
                 <button
                   onClick={() => window.print()}
-                  className="px-4 py-2 rounded-lg bg-vault-800 hover:bg-vault-700 text-white text-sm font-medium transition-colors"
+                  className="px-4 py-2 rounded-lg bg-slate-100 dark:bg-vault-800 hover:bg-slate-700 dark:bg-vault-700 text-white text-sm font-medium transition-colors"
                 >
                   Print Certificate Draft
                 </button>

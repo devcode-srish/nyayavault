@@ -106,23 +106,23 @@ export default function SharePublic() {
 
           {pinRequired && !loading && !error && (
             <div className="space-y-4">
-              <div className="flex items-center gap-2 text-vault-300">
+              <div className="flex items-center gap-2 text-slate-600 dark:text-vault-300">
                 <Lock size={20} />
                 <h2 className="text-sm font-semibold text-white">PIN Protection Required</h2>
               </div>
-              <p className="text-xs text-vault-400">
+              <p className="text-xs text-slate-500 dark:text-vault-400">
                 This secure share link requires a security PIN set by the sender to unlock document details and download access.
               </p>
               <form onSubmit={handlePinSubmit} className="space-y-3">
                 <div>
-                  <label className="block text-xs text-vault-400 mb-1">Enter Security PIN</label>
+                  <label className="block text-xs text-slate-500 dark:text-vault-400 mb-1">Enter Security PIN</label>
                   <input
                     type="password"
                     maxLength={8}
                     value={enteredPin}
                     onChange={(e) => setEnteredPin(e.target.value)}
                     placeholder="Enter PIN"
-                    className="w-full rounded-lg bg-vault-950 border border-vault-700 px-3 py-2 text-sm text-white focus:outline-none focus:border-vault-500"
+                    className="w-full rounded-lg bg-white dark:bg-vault-950 border border-slate-300 dark:border-vault-700 px-3 py-2 text-sm text-slate-900 dark:text-white focus:outline-none focus:border-vault-500"
                     autoFocus
                   />
                 </div>
@@ -130,7 +130,7 @@ export default function SharePublic() {
                 <button
                   type="submit"
                   disabled={!enteredPin || loading}
-                  className="w-full rounded-lg bg-vault-500 hover:bg-vault-400 transition text-white text-sm font-medium py-2 disabled:opacity-50"
+                  className="w-full rounded-lg bg-blue-600 dark:bg-vault-500 hover:bg-blue-700 dark:hover:bg-vault-400 transition text-white text-sm font-medium py-2 disabled:opacity-50"
                 >
                   Unlock Document
                 </button>

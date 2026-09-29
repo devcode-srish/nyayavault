@@ -246,21 +246,21 @@ export default function Security() {
   return (
     <div className="p-8 max-w-7xl mx-auto space-y-8">
       {/* Header */}
-      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 border-b border-vault-800 pb-6">
+      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 border-b border-slate-200 dark:border-vault-800 pb-6">
         <div>
           <div className="flex items-center gap-3">
-            <ShieldAlert className="text-vault-400" size={32} />
-            <h1 className="text-2xl font-bold text-white tracking-tight">Security & Storage Integrity Center</h1>
+            <ShieldAlert className="text-slate-500 dark:text-vault-400" size={32} />
+            <h1 className="text-2xl font-bold text-slate-900 dark:text-white tracking-tight">Security & Storage Integrity Center</h1>
           </div>
-          <p className="text-vault-400 text-sm mt-1">
+          <p className="text-slate-500 dark:text-vault-400 text-sm mt-1">
             Automated streaming verification of evidence file digests against authoritative cryptographic records.
           </p>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3 whitespace-nowrap shrink-0">
           <button
             onClick={refreshAll}
             disabled={loading}
-            className="flex items-center gap-2 px-3.5 py-2 bg-vault-800 hover:bg-vault-700 text-vault-200 text-sm font-medium rounded-lg border border-vault-700 transition"
+            className="flex items-center gap-2 px-3.5 py-2 bg-slate-100 dark:bg-vault-800 hover:bg-slate-700 dark:bg-vault-700 text-slate-700 dark:text-vault-200 text-sm font-medium rounded-lg border border-slate-300 dark:border-vault-700 transition"
           >
             <RefreshCw size={16} className={loading ? "animate-spin" : ""} />
             Refresh
@@ -268,7 +268,7 @@ export default function Security() {
           <button
             onClick={handleStartScan}
             disabled={startingScan || !!activeScan}
-            className="flex items-center gap-2 px-4 py-2 bg-vault-600 hover:bg-vault-500 text-white text-sm font-medium rounded-lg shadow-lg shadow-vault-950/50 transition disabled:opacity-50 disabled:cursor-not-allowed"
+            className="flex items-center gap-2 px-4 py-2 bg-vault-600 hover:bg-blue-600 dark:bg-vault-500 text-white text-sm font-medium rounded-lg shadow-lg shadow-vault-950/50 transition disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap"
           >
             {startingScan ? <RefreshCw size={16} className="animate-spin" /> : <Play size={16} />}
             {activeScan ? "Scan In Progress..." : "Run Storage Scan"}
@@ -298,24 +298,24 @@ export default function Security() {
 
       {/* Active Scan Progress Banner */}
       {activeScan && (
-        <div className="p-6 rounded-2xl bg-gradient-to-r from-vault-900 to-vault-850 border border-vault-700 shadow-xl space-y-4">
+        <div className="p-6 rounded-2xl bg-gradient-to-r from-vault-900 to-vault-850 border border-slate-300 dark:border-vault-700 shadow-xl space-y-4">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
             <div className="flex items-center gap-3">
               <span className="relative flex h-3.5 w-3.5">
                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-vault-400 opacity-75"></span>
-                <span className="relative inline-flex rounded-full h-3.5 w-3.5 bg-vault-500"></span>
+                <span className="relative inline-flex rounded-full h-3.5 w-3.5 bg-blue-600 dark:bg-vault-500"></span>
               </span>
               <div>
-                <h3 className="font-semibold text-white">
+                <h3 className="font-semibold text-slate-900 dark:text-white">
                   Storage Integrity Scan Running — {activeScan.caseName || "System-wide"}
                 </h3>
-                <p className="text-xs text-vault-400">
+                <p className="text-xs text-slate-500 dark:text-vault-400">
                   Initiated by {activeScan.initiatedBy.name} • {activeScan.processedVersions} of {activeScan.totalVersions} document versions processed
                 </p>
               </div>
             </div>
             <div className="flex items-center gap-4">
-              <span className="text-lg font-bold text-vault-300 font-mono">{activeScan.percentage}%</span>
+              <span className="text-lg font-bold text-slate-600 dark:text-vault-300 font-mono">{activeScan.percentage}%</span>
               <button
                 onClick={() => handleCancelScan(activeScan.id)}
                 disabled={cancellingScan}
@@ -326,7 +326,7 @@ export default function Security() {
             </div>
           </div>
 
-          <div className="w-full bg-vault-950 rounded-full h-3 overflow-hidden border border-vault-800">
+          <div className="w-full bg-white dark:bg-vault-950 rounded-full h-3 overflow-hidden border border-slate-200 dark:border-vault-800">
             <div
               className="bg-gradient-to-r from-vault-500 to-emerald-500 h-full rounded-full transition-all duration-300"
               style={{ width: `${Math.max(5, activeScan.percentage)}%` }}
@@ -334,20 +334,20 @@ export default function Security() {
           </div>
 
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-1 text-xs">
-            <div className="bg-vault-950/60 p-2.5 rounded-lg border border-vault-800">
-              <span className="text-vault-400">Verified Match:</span>
+            <div className="bg-white dark:bg-vault-950/60 p-2.5 rounded-lg border border-slate-200 dark:border-vault-800">
+              <span className="text-slate-500 dark:text-vault-400">Verified Match:</span>
               <span className="ml-2 font-semibold text-emerald-400">{activeScan.verifiedCount}</span>
             </div>
-            <div className="bg-vault-950/60 p-2.5 rounded-lg border border-vault-800">
-              <span className="text-vault-400">Mismatches:</span>
+            <div className="bg-white dark:bg-vault-950/60 p-2.5 rounded-lg border border-slate-200 dark:border-vault-800">
+              <span className="text-slate-500 dark:text-vault-400">Mismatches:</span>
               <span className="ml-2 font-semibold text-red-400">{activeScan.mismatchCount}</span>
             </div>
-            <div className="bg-vault-950/60 p-2.5 rounded-lg border border-vault-800">
-              <span className="text-vault-400">Missing Files:</span>
+            <div className="bg-white dark:bg-vault-950/60 p-2.5 rounded-lg border border-slate-200 dark:border-vault-800">
+              <span className="text-slate-500 dark:text-vault-400">Missing Files:</span>
               <span className="ml-2 font-semibold text-amber-400">{activeScan.missingCount}</span>
             </div>
-            <div className="bg-vault-950/60 p-2.5 rounded-lg border border-vault-800">
-              <span className="text-vault-400">Unreadable/Errors:</span>
+            <div className="bg-white dark:bg-vault-950/60 p-2.5 rounded-lg border border-slate-200 dark:border-vault-800">
+              <span className="text-slate-500 dark:text-vault-400">Unreadable/Errors:</span>
               <span className="ml-2 font-semibold text-yellow-400">{activeScan.unreadableCount + activeScan.errorCount}</span>
             </div>
           </div>
@@ -356,26 +356,26 @@ export default function Security() {
 
       {/* Summary KPI Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
-        <div className="p-5 rounded-2xl bg-vault-900/70 border border-vault-800 flex flex-col justify-between">
-          <div className="flex items-center justify-between text-vault-400 text-sm">
+        <div className="p-5 rounded-2xl bg-white dark:bg-vault-900/70 border border-slate-200 dark:border-vault-800 flex flex-col justify-between">
+          <div className="flex items-center justify-between text-slate-500 dark:text-vault-400 text-sm">
             <span>Integrity Health Score</span>
-            <ShieldCheck size={18} className="text-vault-400" />
+            <ShieldCheck size={18} className="text-slate-500 dark:text-vault-400" />
           </div>
           <div className="mt-4 flex items-baseline gap-2">
-            <span className="text-3xl font-bold text-white font-mono">
+            <span className="text-3xl font-bold text-slate-900 dark:text-white font-mono">
               {summary ? `${summary.integrityScore}%` : "—"}
             </span>
-            <span className="text-xs text-vault-400">
+            <span className="text-xs text-slate-500 dark:text-vault-400">
               ({summary ? summary.verifiedDocuments : 0}/{summary ? summary.totalDocuments : 0} documents)
             </span>
           </div>
-          <div className="mt-3 text-xs text-vault-400">
-            Total Versions: <span className="text-vault-200 font-semibold">{summary?.totalVersions ?? 0}</span>
+          <div className="mt-3 text-xs text-slate-500 dark:text-vault-400">
+            Total Versions: <span className="text-slate-700 dark:text-vault-200 font-semibold">{summary?.totalVersions ?? 0}</span>
           </div>
         </div>
 
-        <div className="p-5 rounded-2xl bg-vault-900/70 border border-vault-800 flex flex-col justify-between">
-          <div className="flex items-center justify-between text-vault-400 text-sm">
+        <div className="p-5 rounded-2xl bg-white dark:bg-vault-900/70 border border-slate-200 dark:border-vault-800 flex flex-col justify-between">
+          <div className="flex items-center justify-between text-slate-500 dark:text-vault-400 text-sm">
             <span>Verified Evidence</span>
             <CheckCircle2 size={18} className="text-emerald-400" />
           </div>
@@ -384,7 +384,7 @@ export default function Security() {
               {summary ? summary.verifiedDocuments : "—"}
             </span>
           </div>
-          <div className="mt-3 text-xs text-vault-400">
+          <div className="mt-3 text-xs text-slate-500 dark:text-vault-400">
             Cryptographically intact on storage
           </div>
         </div>
@@ -392,14 +392,14 @@ export default function Security() {
         <div className={`p-5 rounded-2xl border flex flex-col justify-between ${
           (summary?.mismatchDocuments ?? 0) > 0
             ? "bg-red-950/30 border-red-800 text-red-300"
-            : "bg-vault-900/70 border-vault-800 text-vault-400"
+            : "bg-white dark:bg-vault-900/70 border-slate-200 dark:border-vault-800 text-slate-500 dark:text-vault-400"
         }`}>
           <div className="flex items-center justify-between text-sm">
             <span>Tamper & Mismatches</span>
-            <AlertTriangle size={18} className={(summary?.mismatchDocuments ?? 0) > 0 ? "text-red-400" : "text-vault-500"} />
+            <AlertTriangle size={18} className={(summary?.mismatchDocuments ?? 0) > 0 ? "text-red-400" : "text-slate-500 dark:text-vault-500"} />
           </div>
           <div className="mt-4">
-            <span className={`text-3xl font-bold font-mono ${(summary?.mismatchDocuments ?? 0) > 0 ? "text-red-400" : "text-white"}`}>
+            <span className={`text-3xl font-bold font-mono ${(summary?.mismatchDocuments ?? 0) > 0 ? "text-red-400" : "text-slate-900 dark:text-white"}`}>
               {summary ? summary.mismatchDocuments : "—"}
             </span>
           </div>
@@ -408,19 +408,19 @@ export default function Security() {
           </div>
         </div>
 
-        <div className="p-5 rounded-2xl bg-vault-900/70 border border-vault-800 flex flex-col justify-between">
-          <div className="flex items-center justify-between text-vault-400 text-sm">
+        <div className="p-5 rounded-2xl bg-white dark:bg-vault-900/70 border border-slate-200 dark:border-vault-800 flex flex-col justify-between">
+          <div className="flex items-center justify-between text-slate-500 dark:text-vault-400 text-sm">
             <span>Last Scan Execution</span>
-            <Clock size={18} className="text-vault-400" />
+            <Clock size={18} className="text-slate-500 dark:text-vault-400" />
           </div>
           <div className="mt-4">
-            <span className="text-sm font-semibold text-white">
+            <span className="text-sm font-semibold text-slate-900 dark:text-white">
               {summary?.lastScan?.completedAt
                 ? new Date(summary.lastScan.completedAt).toLocaleString()
                 : "No completed scans"}
             </span>
           </div>
-          <div className="mt-3 text-xs text-vault-400">
+          <div className="mt-3 text-xs text-slate-500 dark:text-vault-400">
             {summary?.lastScan
               ? `Duration: ${Math.round((summary.lastScan.elapsedMs || 0) / 1000)}s by ${summary.lastScan.initiatedBy}`
               : "Ready to scan"}
@@ -429,23 +429,23 @@ export default function Security() {
       </div>
 
       {/* Scope Selector & Filter Bar */}
-      <div className="p-4 rounded-xl bg-vault-900/50 border border-vault-800 flex flex-col md:flex-row gap-4 items-center justify-between">
+      <div className="p-4 rounded-xl bg-white dark:bg-vault-900/50 border border-slate-200 dark:border-vault-800 flex flex-col md:flex-row gap-4 items-center justify-between">
         <div className="flex flex-wrap items-center gap-3 w-full md:w-auto">
           <div className="relative flex-1 sm:w-64">
-            <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-vault-500" />
+            <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 dark:text-vault-500" />
             <input
               type="text"
               placeholder="Search document, hash, reason..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full bg-vault-950 border border-vault-800 rounded-lg pl-9 pr-3 py-1.5 text-sm text-white placeholder-vault-500 focus:outline-none focus:border-vault-500"
+              className="w-full bg-white dark:bg-vault-950 border border-slate-200 dark:border-vault-800 rounded-lg pl-9 pr-3 py-1.5 text-sm text-slate-900 dark:text-white placeholder-vault-500 focus:outline-none focus:border-vault-500"
             />
           </div>
 
           <select
             value={selectedCaseId}
             onChange={(e) => setSelectedCaseId(e.target.value)}
-            className="bg-vault-950 border border-vault-800 rounded-lg px-3 py-1.5 text-sm text-vault-200 focus:outline-none focus:border-vault-500"
+            className="bg-white dark:bg-vault-950 border border-slate-200 dark:border-vault-800 rounded-lg px-3 py-1.5 text-sm text-slate-700 dark:text-vault-200 focus:outline-none focus:border-vault-500"
           >
             <option value="">All Accessible Cases</option>
             {cases.map((c) => (
@@ -458,7 +458,7 @@ export default function Security() {
           <select
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value)}
-            className="bg-vault-950 border border-vault-800 rounded-lg px-3 py-1.5 text-sm text-vault-200 focus:outline-none focus:border-vault-500"
+            className="bg-white dark:bg-vault-950 border border-slate-200 dark:border-vault-800 rounded-lg px-3 py-1.5 text-sm text-slate-700 dark:text-vault-200 focus:outline-none focus:border-vault-500"
           >
             <option value="ALL">All Finding Statuses</option>
             <option value="VERIFIED">Verified Only</option>
@@ -470,11 +470,11 @@ export default function Security() {
         </div>
 
         {/* Tab switcher */}
-        <div className="flex bg-vault-950 rounded-lg p-1 border border-vault-800 shrink-0">
+        <div className="flex bg-white dark:bg-vault-950 rounded-lg p-1 border border-slate-200 dark:border-vault-800 shrink-0">
           <button
             onClick={() => setActiveTab("findings")}
             className={`px-3 py-1.5 rounded-md text-xs font-medium transition ${
-              activeTab === "findings" ? "bg-vault-800 text-white shadow" : "text-vault-400 hover:text-vault-200"
+              activeTab === "findings" ? "bg-slate-100 dark:bg-vault-800 text-slate-900 dark:text-white shadow" : "text-slate-500 dark:text-vault-400 hover:text-slate-700 dark:text-vault-200"
             }`}
           >
             Findings Ledger ({filteredFindings.length})
@@ -482,7 +482,7 @@ export default function Security() {
           <button
             onClick={() => setActiveTab("runs")}
             className={`px-3 py-1.5 rounded-md text-xs font-medium transition ${
-              activeTab === "runs" ? "bg-vault-800 text-white shadow" : "text-vault-400 hover:text-vault-200"
+              activeTab === "runs" ? "bg-slate-100 dark:bg-vault-800 text-slate-900 dark:text-white shadow" : "text-slate-500 dark:text-vault-400 hover:text-slate-700 dark:text-vault-200"
             }`}
           >
             Scan Runs ({scans.length})
@@ -492,10 +492,10 @@ export default function Security() {
 
       {/* Main Content Area */}
       {activeTab === "findings" ? (
-        <div className="rounded-2xl bg-vault-900/70 border border-vault-800 overflow-hidden">
+        <div className="rounded-2xl bg-white dark:bg-vault-900/70 border border-slate-200 dark:border-vault-800 overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full text-left text-sm">
-              <thead className="bg-vault-950/80 text-vault-400 text-xs uppercase tracking-wider border-b border-vault-800">
+              <thead className="bg-white dark:bg-vault-950/80 text-slate-500 dark:text-vault-400 text-xs uppercase tracking-wider border-b border-slate-200 dark:border-vault-800">
                 <tr>
                   <th className="px-5 py-3.5">Document & Version</th>
                   <th className="px-5 py-3.5">Status</th>
@@ -505,13 +505,13 @@ export default function Security() {
                   <th className="px-5 py-3.5 text-right">Actions</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-vault-800 text-vault-200">
+              <tbody className="divide-y divide-slate-100 dark:divide-vault-800 text-slate-700 dark:text-vault-200">
                 {filteredFindings.length === 0 ? (
                   <tr>
-                    <td colSpan={6} className="px-5 py-12 text-center text-vault-400">
+                    <td colSpan={6} className="px-5 py-12 text-center text-slate-500 dark:text-vault-400">
                       <FileQuestion size={36} className="mx-auto text-vault-600 mb-2" />
                       No scan findings match the selected criteria.
-                      <p className="text-xs text-vault-500 mt-1">Run a new storage scan to populate evidence records.</p>
+                      <p className="text-xs text-slate-500 dark:text-vault-500 mt-1">Run a new storage scan to populate evidence records.</p>
                     </td>
                   </tr>
                 ) : (
@@ -519,11 +519,11 @@ export default function Security() {
                     <tr key={finding.id} className="hover:bg-vault-850/50 transition">
                       <td className="px-5 py-3.5">
                         <div className="flex items-center gap-2">
-                          <FileText size={16} className="text-vault-400 shrink-0" />
+                          <FileText size={16} className="text-slate-500 dark:text-vault-400 shrink-0" />
                           <div>
-                            <span className="font-medium text-white">{finding.documentName}</span>
-                            <div className="flex items-center gap-1.5 text-xs text-vault-400">
-                              <span className="px-1.5 py-0.2 bg-vault-800 rounded font-mono text-[10px]">
+                            <span className="font-medium text-slate-900 dark:text-white">{finding.documentName}</span>
+                            <div className="flex items-center gap-1.5 text-xs text-slate-500 dark:text-vault-400">
+                              <span className="px-1.5 py-0.2 bg-slate-100 dark:bg-vault-800 rounded font-mono text-[10px]">
                                 v{finding.versionNo}
                               </span>
                               <span>• {finding.originalName}</span>
@@ -559,7 +559,7 @@ export default function Security() {
                           </span>
                         )}
                       </td>
-                      <td className="px-5 py-3.5 font-mono text-xs text-vault-300">
+                      <td className="px-5 py-3.5 font-mono text-xs text-slate-600 dark:text-vault-300">
                         <span title={finding.expectedSha256}>
                           {finding.expectedSha256.substring(0, 16)}...
                         </span>
@@ -567,22 +567,22 @@ export default function Security() {
                       <td className="px-5 py-3.5 font-mono text-xs">
                         {finding.actualSha256 ? (
                           <span
-                            className={finding.status === "MISMATCH" ? "text-red-400 font-semibold" : "text-vault-300"}
+                            className={finding.status === "MISMATCH" ? "text-red-400 font-semibold" : "text-slate-600 dark:text-vault-300"}
                             title={finding.actualSha256}
                           >
                             {finding.actualSha256.substring(0, 16)}...
                           </span>
                         ) : (
-                          <span className="text-vault-500 italic">N/A</span>
+                          <span className="text-slate-500 dark:text-vault-500 italic">N/A</span>
                         )}
                       </td>
-                      <td className="px-5 py-3.5 text-xs text-vault-400">
+                      <td className="px-5 py-3.5 text-xs text-slate-500 dark:text-vault-400">
                         {new Date(finding.scannedAt).toLocaleString()}
                       </td>
                       <td className="px-5 py-3.5 text-right">
                         <button
                           onClick={() => setSelectedFinding(finding)}
-                          className="px-2.5 py-1 bg-vault-800 hover:bg-vault-700 text-vault-200 text-xs rounded border border-vault-700 transition"
+                          className="px-2.5 py-1 bg-slate-100 dark:bg-vault-800 hover:bg-slate-700 dark:bg-vault-700 text-slate-700 dark:text-vault-200 text-xs rounded border border-slate-300 dark:border-vault-700 transition"
                         >
                           Inspect
                         </button>
@@ -596,10 +596,10 @@ export default function Security() {
         </div>
       ) : (
         /* Scan Runs Table */
-        <div className="rounded-2xl bg-vault-900/70 border border-vault-800 overflow-hidden">
+        <div className="rounded-2xl bg-white dark:bg-vault-900/70 border border-slate-200 dark:border-vault-800 overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full text-left text-sm">
-              <thead className="bg-vault-950/80 text-vault-400 text-xs uppercase tracking-wider border-b border-vault-800">
+              <thead className="bg-white dark:bg-vault-950/80 text-slate-500 dark:text-vault-400 text-xs uppercase tracking-wider border-b border-slate-200 dark:border-vault-800">
                 <tr>
                   <th className="px-5 py-3.5">Scan Run</th>
                   <th className="px-5 py-3.5">Status</th>
@@ -610,17 +610,17 @@ export default function Security() {
                   <th className="px-5 py-3.5">Executed At</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-vault-800 text-vault-200">
+              <tbody className="divide-y divide-slate-100 dark:divide-vault-800 text-slate-700 dark:text-vault-200">
                 {scans.length === 0 ? (
                   <tr>
-                    <td colSpan={7} className="px-5 py-12 text-center text-vault-400">
+                    <td colSpan={7} className="px-5 py-12 text-center text-slate-500 dark:text-vault-400">
                       No scan runs recorded yet.
                     </td>
                   </tr>
                 ) : (
                   scans.map((run) => (
                     <tr key={run.id} className="hover:bg-vault-850/50 transition">
-                      <td className="px-5 py-3.5 font-mono text-xs text-vault-300">
+                      <td className="px-5 py-3.5 font-mono text-xs text-slate-600 dark:text-vault-300">
                         {run.id}
                       </td>
                       <td className="px-5 py-3.5">
@@ -628,7 +628,7 @@ export default function Security() {
                           run.status === "COMPLETED"
                             ? "bg-emerald-950/80 text-emerald-300 border border-emerald-800"
                             : run.status === "IN_PROGRESS"
-                            ? "bg-vault-800 text-vault-300 border border-vault-600 animate-pulse"
+                            ? "bg-slate-100 dark:bg-vault-800 text-slate-600 dark:text-vault-300 border border-slate-400 dark:border-vault-600 animate-pulse"
                             : run.status === "CANCELLED"
                             ? "bg-amber-950/80 text-amber-300 border border-amber-800"
                             : "bg-red-950/80 text-red-300 border border-red-800"
@@ -636,7 +636,7 @@ export default function Security() {
                           {run.status}
                         </span>
                       </td>
-                      <td className="px-5 py-3.5 text-xs text-white">
+                      <td className="px-5 py-3.5 text-xs text-slate-900 dark:text-white">
                         {run.caseName || "System-wide"}
                       </td>
                       <td className="px-5 py-3.5 text-xs">
@@ -649,13 +649,13 @@ export default function Security() {
                           )}
                         </div>
                       </td>
-                      <td className="px-5 py-3.5 text-xs text-vault-400">
+                      <td className="px-5 py-3.5 text-xs text-slate-500 dark:text-vault-400">
                         {run.elapsedMs ? `${Math.round(run.elapsedMs / 1000)}s` : "—"}
                       </td>
-                      <td className="px-5 py-3.5 text-xs text-vault-300">
+                      <td className="px-5 py-3.5 text-xs text-slate-600 dark:text-vault-300">
                         {run.initiatedBy.name} ({run.initiatedBy.role.replace(/_/g, " ")})
                       </td>
-                      <td className="px-5 py-3.5 text-xs text-vault-400">
+                      <td className="px-5 py-3.5 text-xs text-slate-500 dark:text-vault-400">
                         {new Date(run.startedAt).toLocaleString()}
                       </td>
                     </tr>
@@ -670,20 +670,20 @@ export default function Security() {
       {/* Forensic Finding Inspector Modal */}
       {selectedFinding && (
         <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-vault-900 border border-vault-700 rounded-2xl max-w-2xl w-full p-6 space-y-6 shadow-2xl max-h-[90vh] overflow-y-auto">
-            <div className="flex items-start justify-between border-b border-vault-800 pb-4">
+          <div className="bg-white dark:bg-vault-900 border border-slate-300 dark:border-vault-700 rounded-2xl max-w-2xl w-full p-6 space-y-6 shadow-2xl max-h-[90vh] overflow-y-auto">
+            <div className="flex items-start justify-between border-b border-slate-200 dark:border-vault-800 pb-4">
               <div>
                 <div className="flex items-center gap-2">
-                  <HardDrive size={20} className="text-vault-400" />
-                  <h3 className="text-lg font-bold text-white">Forensic Evidence Finding</h3>
+                  <HardDrive size={20} className="text-slate-500 dark:text-vault-400" />
+                  <h3 className="text-lg font-bold text-slate-900 dark:text-white">Forensic Evidence Finding</h3>
                 </div>
-                <p className="text-xs text-vault-400 mt-0.5">
-                  Finding ID: <span className="font-mono text-vault-300">{selectedFinding.id}</span>
+                <p className="text-xs text-slate-500 dark:text-vault-400 mt-0.5">
+                  Finding ID: <span className="font-mono text-slate-600 dark:text-vault-300">{selectedFinding.id}</span>
                 </p>
               </div>
               <button
                 onClick={() => setSelectedFinding(null)}
-                className="text-vault-400 hover:text-white transition"
+                className="text-slate-500 dark:text-vault-400 hover:text-slate-900 dark:hover:text-white transition"
               >
                 <XCircle size={20} />
               </button>
@@ -715,22 +715,22 @@ export default function Security() {
               </div>
 
               {/* Document Info */}
-              <div className="bg-vault-950 p-4 rounded-xl border border-vault-800 space-y-2">
+              <div className="bg-white dark:bg-vault-950 p-4 rounded-xl border border-slate-200 dark:border-vault-800 space-y-2">
                 <div className="flex justify-between text-xs">
-                  <span className="text-vault-400">Document Name:</span>
-                  <span className="font-semibold text-white">{selectedFinding.documentName}</span>
+                  <span className="text-slate-500 dark:text-vault-400">Document Name:</span>
+                  <span className="font-semibold text-slate-900 dark:text-white">{selectedFinding.documentName}</span>
                 </div>
                 <div className="flex justify-between text-xs">
-                  <span className="text-vault-400">Version Number:</span>
-                  <span className="font-mono text-vault-200">v{selectedFinding.versionNo}</span>
+                  <span className="text-slate-500 dark:text-vault-400">Version Number:</span>
+                  <span className="font-mono text-slate-700 dark:text-vault-200">v{selectedFinding.versionNo}</span>
                 </div>
                 <div className="flex justify-between text-xs">
-                  <span className="text-vault-400">Original File:</span>
-                  <span className="text-vault-200">{selectedFinding.originalName}</span>
+                  <span className="text-slate-500 dark:text-vault-400">Original File:</span>
+                  <span className="text-slate-700 dark:text-vault-200">{selectedFinding.originalName}</span>
                 </div>
                 <div className="flex justify-between text-xs">
-                  <span className="text-vault-400">Size:</span>
-                  <span className="font-mono text-vault-200">{(selectedFinding.sizeBytes / 1024).toFixed(2)} KB</span>
+                  <span className="text-slate-500 dark:text-vault-400">Size:</span>
+                  <span className="font-mono text-slate-700 dark:text-vault-200">{(selectedFinding.sizeBytes / 1024).toFixed(2)} KB</span>
                 </div>
               </div>
 
@@ -738,37 +738,37 @@ export default function Security() {
               <div className="space-y-3">
                 <div className="space-y-1">
                   <div className="flex items-center justify-between text-xs">
-                    <span className="text-vault-400 font-medium">Authoritative Expected SHA-256 (from Database):</span>
+                    <span className="text-slate-500 dark:text-vault-400 font-medium">Authoritative Expected SHA-256 (from Database):</span>
                     <button
                       onClick={() => copyToClipboard(selectedFinding.expectedSha256, "expected")}
-                      className="text-vault-400 hover:text-vault-200 flex items-center gap-1 text-[11px]"
+                      className="text-slate-500 dark:text-vault-400 hover:text-slate-700 dark:text-vault-200 flex items-center gap-1 text-[11px]"
                     >
                       <Copy size={12} />
                       {copiedHash === "expected" ? "Copied" : "Copy"}
                     </button>
                   </div>
-                  <div className="p-2.5 bg-vault-950 border border-vault-800 rounded-lg font-mono text-xs text-vault-200 break-all select-all">
+                  <div className="p-2.5 bg-white dark:bg-vault-950 border border-slate-200 dark:border-vault-800 rounded-lg font-mono text-xs text-slate-700 dark:text-vault-200 break-all select-all">
                     {selectedFinding.expectedSha256}
                   </div>
                 </div>
 
                 <div className="space-y-1">
                   <div className="flex items-center justify-between text-xs">
-                    <span className="text-vault-400 font-medium">Actual Disk Recalculated SHA-256:</span>
+                    <span className="text-slate-500 dark:text-vault-400 font-medium">Actual Disk Recalculated SHA-256:</span>
                     {selectedFinding.actualSha256 && (
                       <button
                         onClick={() => copyToClipboard(selectedFinding.actualSha256!, "actual")}
-                        className="text-vault-400 hover:text-vault-200 flex items-center gap-1 text-[11px]"
+                        className="text-slate-500 dark:text-vault-400 hover:text-slate-700 dark:text-vault-200 flex items-center gap-1 text-[11px]"
                       >
                         <Copy size={12} />
                         {copiedHash === "actual" ? "Copied" : "Copy"}
                       </button>
                     )}
                   </div>
-                  <div className={`p-2.5 bg-vault-950 border rounded-lg font-mono text-xs break-all select-all ${
+                  <div className={`p-2.5 bg-white dark:bg-vault-950 border rounded-lg font-mono text-xs break-all select-all ${
                     selectedFinding.status === "MISMATCH"
                       ? "border-red-800 text-red-300 font-bold bg-red-950/20"
-                      : "border-vault-800 text-vault-200"
+                      : "border-slate-200 dark:border-vault-800 text-slate-700 dark:text-vault-200"
                   }`}>
                     {selectedFinding.actualSha256 || "File could not be hashed from disk"}
                   </div>
@@ -776,17 +776,17 @@ export default function Security() {
               </div>
 
               {/* Scan Run Reference */}
-              <div className="p-3 bg-vault-950/60 rounded-lg border border-vault-800 flex items-center justify-between text-xs text-vault-400">
+              <div className="p-3 bg-white dark:bg-vault-950/60 rounded-lg border border-slate-200 dark:border-vault-800 flex items-center justify-between text-xs text-slate-500 dark:text-vault-400">
                 <span>Scan Run Reference:</span>
-                <span className="font-mono text-vault-300">{selectedFinding.scanRunId}</span>
+                <span className="font-mono text-slate-600 dark:text-vault-300">{selectedFinding.scanRunId}</span>
               </div>
             </div>
 
-            <div className="flex items-center justify-between border-t border-vault-800 pt-4">
+            <div className="flex items-center justify-between border-t border-slate-200 dark:border-vault-800 pt-4">
               {selectedFinding.documentId ? (
                 <Link
                   to={`/documents/${selectedFinding.documentId}`}
-                  className="inline-flex items-center gap-1.5 text-xs text-vault-400 hover:text-vault-200"
+                  className="inline-flex items-center gap-1.5 text-xs text-slate-500 dark:text-vault-400 hover:text-slate-700 dark:text-vault-200"
                 >
                   <ExternalLink size={14} /> Open Document Details
                 </Link>
@@ -795,7 +795,7 @@ export default function Security() {
               )}
               <button
                 onClick={() => setSelectedFinding(null)}
-                className="px-4 py-2 bg-vault-800 hover:bg-vault-700 text-white text-xs font-medium rounded-lg transition"
+                className="px-4 py-2 bg-slate-100 dark:bg-vault-800 hover:bg-slate-700 dark:bg-vault-700 text-slate-900 dark:text-white text-xs font-medium rounded-lg transition"
               >
                 Close Inspector
               </button>

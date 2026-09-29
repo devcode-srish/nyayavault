@@ -1,7 +1,57 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-body {
-  font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+@layer base {
+  body {
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    @apply antialiased text-slate-900 bg-slate-50 dark:bg-[#0a0f16] dark:text-slate-100;
+  }
+}
+
+@layer utilities {
+  .bg-dot-pattern {
+    background-image: radial-gradient(circle, #000000 1.5px, transparent 1.5px);
+    background-size: 24px 24px;
+    opacity: 0.05;
+  }
+  .dark .bg-dot-pattern {
+    background-image: radial-gradient(circle, #ffffff 1.5px, transparent 1.5px);
+    opacity: 0.03;
+  }
+  .glass {
+    @apply bg-white/70 dark:bg-[#0f1720]/60 backdrop-blur-xl border border-white/20 dark:border-[#28374b]/50 shadow-xl;
+  }
+  .glass-card {
+    @apply bg-white/90 dark:bg-[#0f1720]/80 backdrop-blur-md border border-slate-200/50 dark:border-[#28374b]/50 shadow-sm hover:shadow-lg transition-all duration-300 hover:-translate-y-1;
+  }
+  .gradient-text {
+    @apply bg-clip-text text-transparent bg-gradient-to-r from-blue-600 to-indigo-600 dark:from-blue-400 dark:to-indigo-400;
+  }
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  @apply bg-slate-300 dark:bg-[#28374b] rounded-full;
+}
+::-webkit-scrollbar-thumb:hover {
+  @apply bg-slate-400 dark:bg-[#2e4159];
+}
+
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(15px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.animate-fade-in-up {
+  animation: fadeInUp 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }

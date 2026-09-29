@@ -302,7 +302,7 @@ export default function DocumentDetail() {
           {downloadError && <p className="text-red-400 text-sm mb-2">{downloadError}</p>}
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
-              <thead className="text-vault-400 text-xs uppercase border-b border-vault-800">
+              <thead className="text-slate-500 dark:text-vault-400 text-xs uppercase border-b border-slate-200 dark:border-vault-800">
                 <tr>
                   <th className="text-left py-2">Version</th>
                   <th className="text-left py-2">File</th>
@@ -312,22 +312,22 @@ export default function DocumentDetail() {
                   <th className="text-right py-2">Actions</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-vault-800">
+              <tbody className="divide-y divide-slate-100 dark:divide-vault-800">
                 {doc.versions.map((v: any) => {
                   const sigs = v.signatures || [];
                   const isSigned = sigs.length > 0;
                   return (
                     <tr key={v.id} className="hover:bg-vault-850/30">
-                      <td className="py-2.5 text-vault-200 font-mono">v{v.versionNo}</td>
-                      <td className="py-2.5 text-vault-300">{v.originalName}</td>
-                      <td className="py-2.5 text-vault-400">{v.createdBy?.name || "—"}</td>
+                      <td className="py-2.5 text-slate-700 dark:text-vault-200 font-mono">v{v.versionNo}</td>
+                      <td className="py-2.5 text-slate-600 dark:text-vault-300">{v.originalName}</td>
+                      <td className="py-2.5 text-slate-500 dark:text-vault-400">{v.createdBy?.name || "—"}</td>
                       <td className="py-2.5">
                         {isSigned ? (
                           <div className="space-y-1">
                             {sigs.map((s: any) => (
                               <div key={s.id} className="flex items-center gap-1.5">
                                 <Badge text="SIGNED" tone="good" />
-                                <span className="text-xs text-vault-400">{s.signer?.name}</span>
+                                <span className="text-xs text-slate-500 dark:text-vault-400">{s.signer?.name}</span>
                               </div>
                             ))}
                           </div>
@@ -335,11 +335,11 @@ export default function DocumentDetail() {
                           <Badge text="UNSIGNED" tone="neutral" />
                         )}
                       </td>
-                      <td className="py-2.5 text-vault-500 text-xs">{new Date(v.createdAt).toLocaleString()}</td>
+                      <td className="py-2.5 text-slate-500 dark:text-vault-500 text-xs">{new Date(v.createdAt).toLocaleString()}</td>
                       <td className="py-2.5 text-right space-x-2">
                         <button
                           onClick={() => handleDownload(v.versionNo)}
-                          className="text-xs text-vault-300 hover:text-white px-2 py-1 rounded bg-vault-800 hover:bg-vault-700 transition"
+                          className="text-xs text-slate-600 dark:text-vault-300 hover:text-white px-2 py-1 rounded bg-slate-100 dark:bg-vault-800 hover:bg-slate-700 dark:bg-vault-700 transition"
                         >
                           Download
                         </button>
@@ -367,26 +367,26 @@ export default function DocumentDetail() {
         {/* Sign Version Modal */}
         {signModalVersion && (
           <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-            <div className="bg-vault-900 border border-vault-700 rounded-2xl max-w-lg w-full p-6 shadow-2xl space-y-4">
+            <div className="bg-white dark:bg-vault-900 border border-slate-300 dark:border-vault-700 rounded-2xl max-w-lg w-full p-6 shadow-2xl space-y-4">
               <h3 className="text-lg font-bold text-white">
                 Cryptographically Sign Document (v{signModalVersion.versionNo})
               </h3>
-              <p className="text-xs text-vault-400 leading-relaxed">
-                This operation requests an authoritative, server-issued challenge nonce and signs the exact immutable SHA-256 checksum (<code className="text-vault-200">{signModalVersion.sha256.slice(0, 16)}...</code>) using client-side ECDSA-P256 cryptography.
+              <p className="text-xs text-slate-500 dark:text-vault-400 leading-relaxed">
+                This operation requests an authoritative, server-issued challenge nonce and signs the exact immutable SHA-256 checksum (<code className="text-slate-700 dark:text-vault-200">{signModalVersion.sha256.slice(0, 16)}...</code>) using client-side ECDSA-P256 cryptography.
               </p>
 
               {signError && <div className="p-3 bg-red-950/60 border border-red-800 text-red-300 text-xs rounded-lg">{signError}</div>}
               {signSuccess && <div className="p-3 bg-emerald-950/60 border border-emerald-800 text-emerald-300 text-xs rounded-lg">{signSuccess}</div>}
 
-              <div className="space-y-3 text-xs bg-vault-950 p-4 rounded-xl border border-vault-800 font-mono">
+              <div className="space-y-3 text-xs bg-white dark:bg-vault-950 p-4 rounded-xl border border-slate-200 dark:border-vault-800 font-mono">
                 <div>
-                  <span className="text-vault-500 font-sans">Document:</span> <span className="text-white">{doc.name}</span>
+                  <span className="text-slate-500 dark:text-vault-500 font-sans">Document:</span> <span className="text-white">{doc.name}</span>
                 </div>
                 <div>
-                  <span className="text-vault-500 font-sans">Signer:</span> <span className="text-indigo-400">{user?.name} ({user?.role})</span>
+                  <span className="text-slate-500 dark:text-vault-500 font-sans">Signer:</span> <span className="text-indigo-400">{user?.name} ({user?.role})</span>
                 </div>
                 <div>
-                  <span className="text-vault-500 font-sans">Algorithm:</span> <span className="text-emerald-400">ECDSA-P256-SHA256</span>
+                  <span className="text-slate-500 dark:text-vault-500 font-sans">Algorithm:</span> <span className="text-emerald-400">ECDSA-P256-SHA256</span>
                 </div>
               </div>
 
@@ -394,7 +394,7 @@ export default function DocumentDetail() {
                 <button
                   onClick={() => setSignModalVersion(null)}
                   disabled={signing}
-                  className="px-4 py-2 text-xs rounded-lg bg-vault-800 hover:bg-vault-700 text-vault-300 transition"
+                  className="px-4 py-2 text-xs rounded-lg bg-slate-100 dark:bg-vault-800 hover:bg-slate-700 dark:bg-vault-700 text-slate-600 dark:text-vault-300 transition"
                 >
                   Cancel
                 </button>
@@ -413,15 +413,15 @@ export default function DocumentDetail() {
         {/* Section 65B Certificate Modal */}
         {certModalData && (
           <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4 z-50 overflow-y-auto">
-            <div className="bg-vault-900 border border-vault-700 rounded-2xl max-w-3xl w-full p-8 shadow-2xl space-y-6 my-8">
-              <div className="text-center border-b border-vault-800 pb-6">
+            <div className="bg-white dark:bg-vault-900 border border-slate-300 dark:border-vault-700 rounded-2xl max-w-3xl w-full p-8 shadow-2xl space-y-6 my-8">
+              <div className="text-center border-b border-slate-200 dark:border-vault-800 pb-6">
                 <div className="inline-block px-3 py-1 bg-amber-500/10 border border-amber-500/30 text-amber-400 text-xs font-semibold uppercase rounded-full mb-3">
                   {certModalData.certificateHeader.disclaimer}
                 </div>
                 <h2 className="text-2xl font-bold text-white tracking-wide uppercase">
                   {certModalData.certificateHeader.title}
                 </h2>
-                <p className="text-vault-400 text-xs mt-1 italic">
+                <p className="text-slate-500 dark:text-vault-400 text-xs mt-1 italic">
                   {certModalData.certificateHeader.statutoryReference}
                 </p>
                 <div className="mt-3 font-mono text-sm text-indigo-400 font-semibold">
@@ -429,28 +429,28 @@ export default function DocumentDetail() {
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-4 text-sm bg-vault-950/60 p-4 rounded-xl border border-vault-800">
+              <div className="grid grid-cols-2 gap-4 text-sm bg-white dark:bg-vault-950/60 p-4 rounded-xl border border-slate-200 dark:border-vault-800">
                 <div>
-                  <div className="text-vault-500 text-xs">Case Reference</div>
+                  <div className="text-slate-500 dark:text-vault-500 text-xs">Case Reference</div>
                   <div className="text-white font-medium">{certModalData.caseDetails.caseNumber} - {certModalData.caseDetails.caseTitle}</div>
                 </div>
                 <div>
-                  <div className="text-vault-500 text-xs">Document Name & Version</div>
+                  <div className="text-slate-500 dark:text-vault-500 text-xs">Document Name & Version</div>
                   <div className="text-white font-medium">{certModalData.electronicRecord.documentName} (v{certModalData.electronicRecord.versionNo})</div>
                 </div>
                 <div>
-                  <div className="text-vault-500 text-xs">Original Filename & Size</div>
-                  <div className="text-vault-300">{certModalData.electronicRecord.originalFilename} ({certModalData.electronicRecord.sizeBytes} bytes)</div>
+                  <div className="text-slate-500 dark:text-vault-500 text-xs">Original Filename & Size</div>
+                  <div className="text-slate-600 dark:text-vault-300">{certModalData.electronicRecord.originalFilename} ({certModalData.electronicRecord.sizeBytes} bytes)</div>
                 </div>
                 <div>
-                  <div className="text-vault-500 text-xs">Generated At</div>
-                  <div className="text-vault-300">{new Date(certModalData.certificateHeader.generatedAt).toLocaleString()}</div>
+                  <div className="text-slate-500 dark:text-vault-500 text-xs">Generated At</div>
+                  <div className="text-slate-600 dark:text-vault-300">{new Date(certModalData.certificateHeader.generatedAt).toLocaleString()}</div>
                 </div>
               </div>
 
-              <div className="bg-vault-950/80 p-4 rounded-xl border border-vault-800 space-y-3 font-mono text-xs">
+              <div className="bg-white dark:bg-vault-950/80 p-4 rounded-xl border border-slate-200 dark:border-vault-800 space-y-3 font-mono text-xs">
                 <div>
-                  <div className="text-vault-500 text-[11px] uppercase font-sans">Authoritative SHA-256 Checksum</div>
+                  <div className="text-slate-500 dark:text-vault-500 text-[11px] uppercase font-sans">Authoritative SHA-256 Checksum</div>
                   <div className="text-emerald-400 break-all select-all font-bold">
                     {certModalData.electronicRecord.sha256Checksum}
                   </div>
@@ -458,23 +458,23 @@ export default function DocumentDetail() {
 
                 {certModalData.cryptographicSignature ? (
                   <>
-                    <div className="grid grid-cols-2 gap-2 pt-2 border-t border-vault-800/80">
+                    <div className="grid grid-cols-2 gap-2 pt-2 border-t border-slate-200 dark:border-vault-800/80">
                       <div>
-                        <div className="text-vault-500 text-[11px] uppercase font-sans">Digital Signer</div>
+                        <div className="text-slate-500 dark:text-vault-500 text-[11px] uppercase font-sans">Digital Signer</div>
                         <div className="text-white">{certModalData.cryptographicSignature.signerName} ({certModalData.cryptographicSignature.signerRole})</div>
                       </div>
                       <div>
-                        <div className="text-vault-500 text-[11px] uppercase font-sans">Algorithm</div>
+                        <div className="text-slate-500 dark:text-vault-500 text-[11px] uppercase font-sans">Algorithm</div>
                         <div className="text-indigo-400">{certModalData.cryptographicSignature.algorithm}</div>
                       </div>
                     </div>
                     <div>
-                      <div className="text-vault-500 text-[11px] uppercase font-sans">Public Key Fingerprint</div>
-                      <div className="text-vault-300 break-all">{certModalData.cryptographicSignature.keyFingerprint || "N/A"}</div>
+                      <div className="text-slate-500 dark:text-vault-500 text-[11px] uppercase font-sans">Public Key Fingerprint</div>
+                      <div className="text-slate-600 dark:text-vault-300 break-all">{certModalData.cryptographicSignature.keyFingerprint || "N/A"}</div>
                     </div>
                     <div>
-                      <div className="text-vault-500 text-[11px] uppercase font-sans">Cryptographic Signature Value</div>
-                      <div className="text-vault-400 break-all max-h-16 overflow-y-auto bg-vault-900 p-2 rounded border border-vault-800 select-all">
+                      <div className="text-slate-500 dark:text-vault-500 text-[11px] uppercase font-sans">Cryptographic Signature Value</div>
+                      <div className="text-slate-500 dark:text-vault-400 break-all max-h-16 overflow-y-auto bg-white dark:bg-vault-900 p-2 rounded border border-slate-200 dark:border-vault-800 select-all">
                         {certModalData.cryptographicSignature.signatureValue}
                       </div>
                     </div>
@@ -489,7 +489,7 @@ export default function DocumentDetail() {
               <div className="flex justify-end gap-3 pt-2">
                 <button
                   onClick={() => window.print()}
-                  className="px-4 py-2 rounded-lg bg-vault-800 hover:bg-vault-700 text-white text-sm font-medium transition-colors"
+                  className="px-4 py-2 rounded-lg bg-slate-100 dark:bg-vault-800 hover:bg-slate-700 dark:bg-vault-700 text-white text-sm font-medium transition-colors"
                 >
                   Print Certificate Draft
                 </button>

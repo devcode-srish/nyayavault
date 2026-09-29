@@ -67,23 +67,23 @@ export default function CustodyReceiptModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm print:p-0 print:bg-white">
-      <div className="bg-vault-900 border border-vault-800 rounded-2xl max-w-3xl w-full p-6 shadow-2xl space-y-6 text-white max-h-[90vh] overflow-y-auto print:border-none print:shadow-none print:p-0 print:text-black">
+      <div className="bg-white dark:bg-vault-900 border border-slate-200 dark:border-vault-800 rounded-2xl max-w-3xl w-full p-6 shadow-2xl space-y-6 text-slate-900 dark:text-white max-h-[90vh] overflow-y-auto print:border-none print:shadow-none print:p-0 print:text-black">
         {/* Modal Header */}
-        <div className="flex items-center justify-between border-b border-vault-800 pb-4 print:hidden">
+        <div className="flex items-center justify-between border-b border-slate-200 dark:border-vault-800 pb-4 print:hidden">
           <div className="flex items-center gap-2">
             <FileCheck2 className="text-emerald-400" size={20} />
             <h3 className="font-semibold text-lg">Evidence Custody Handover Receipt</h3>
           </div>
           <button
             onClick={onClose}
-            className="p-1 rounded-lg text-vault-400 hover:text-white hover:bg-vault-800 transition"
+            className="p-1 rounded-lg text-slate-500 dark:text-vault-400 hover:text-white hover:bg-slate-100 dark:bg-vault-800 transition"
           >
             <X size={18} />
           </button>
         </div>
 
         {loading ? (
-          <div className="p-12 text-center text-vault-400 text-sm">Loading receipt details...</div>
+          <div className="p-12 text-center text-slate-500 dark:text-vault-400 text-sm">Loading receipt details...</div>
         ) : error ? (
           <div className="p-4 rounded-lg bg-red-950/60 border border-red-800 text-red-300 text-sm">
             {error}
@@ -251,17 +251,17 @@ export default function CustodyReceiptModal({
             </div>
 
             {/* Modal Actions */}
-            <div className="flex justify-end gap-3 pt-4 border-t border-vault-800 print:hidden">
+            <div className="flex justify-end gap-3 pt-4 border-t border-slate-200 dark:border-vault-800 print:hidden">
               <button
                 onClick={onClose}
-                className="px-4 py-2 rounded-lg bg-vault-800 hover:bg-vault-700 text-vault-200 text-sm transition"
+                className="px-4 py-2 rounded-lg bg-slate-100 dark:bg-vault-800 hover:bg-slate-700 dark:bg-vault-700 text-slate-700 dark:text-vault-200 text-sm transition"
               >
                 Close
               </button>
               <button
                 onClick={handlePrintOfficial}
                 disabled={exporting}
-                className="flex items-center gap-2 px-4 py-2 bg-vault-600 hover:bg-vault-500 text-white text-sm font-semibold rounded-lg shadow-lg shadow-vault-950/50 transition"
+                className="flex items-center gap-2 px-4 py-2 bg-vault-600 hover:bg-blue-600 dark:bg-vault-500 text-white text-sm font-semibold rounded-lg shadow-lg shadow-vault-950/50 transition"
               >
                 <Printer size={16} /> {exporting ? "Recording Export..." : "Print Official Receipt"}
               </button>

@@ -84,23 +84,23 @@ export default function EvidenceQRLabelModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm print:p-0 print:bg-white">
-      <div className="bg-vault-900 border border-vault-800 rounded-2xl max-w-xl w-full p-6 shadow-2xl space-y-6 text-white max-h-[90vh] overflow-y-auto print:border-none print:shadow-none print:p-0 print:text-black">
+      <div className="bg-white dark:bg-vault-900 border border-slate-200 dark:border-vault-800 rounded-2xl max-w-xl w-full p-6 shadow-2xl space-y-6 text-slate-900 dark:text-white max-h-[90vh] overflow-y-auto print:border-none print:shadow-none print:p-0 print:text-black">
         {/* Modal Header */}
-        <div className="flex items-center justify-between border-b border-vault-800 pb-4 print:hidden">
+        <div className="flex items-center justify-between border-b border-slate-200 dark:border-vault-800 pb-4 print:hidden">
           <div className="flex items-center gap-2">
-            <QrCode className="text-vault-400" size={20} />
+            <QrCode className="text-slate-500 dark:text-vault-400" size={20} />
             <h3 className="font-semibold text-lg">Physical Evidence QR Tag</h3>
           </div>
           <button
             onClick={onClose}
-            className="p-1 rounded-lg text-vault-400 hover:text-white hover:bg-vault-800 transition"
+            className="p-1 rounded-lg text-slate-500 dark:text-vault-400 hover:text-white hover:bg-slate-100 dark:bg-vault-800 transition"
           >
             <X size={18} />
           </button>
         </div>
 
         {loading ? (
-          <div className="p-12 text-center text-vault-400 text-sm">Loading label metadata...</div>
+          <div className="p-12 text-center text-slate-500 dark:text-vault-400 text-sm">Loading label metadata...</div>
         ) : error ? (
           <div className="p-4 rounded-lg bg-red-950/60 border border-red-800 text-red-300 text-sm">
             {error}
@@ -180,7 +180,7 @@ export default function EvidenceQRLabelModal({
                 <div className="flex justify-end gap-2 pt-1">
                   <button
                     onClick={() => setConfirmRotate(false)}
-                    className="px-3 py-1.5 rounded-lg bg-vault-800 hover:bg-vault-700 text-vault-200 transition"
+                    className="px-3 py-1.5 rounded-lg bg-slate-100 dark:bg-vault-800 hover:bg-slate-700 dark:bg-vault-700 text-slate-700 dark:text-vault-200 transition"
                   >
                     Cancel
                   </button>
@@ -196,11 +196,11 @@ export default function EvidenceQRLabelModal({
             ) : null}
 
             {/* Modal Actions */}
-            <div className="flex flex-wrap items-center justify-between gap-3 pt-4 border-t border-vault-800 print:hidden">
+            <div className="flex flex-wrap items-center justify-between gap-3 pt-4 border-t border-slate-200 dark:border-vault-800 print:hidden">
               <div className="flex items-center gap-2">
                 <button
                   onClick={copyLink}
-                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-vault-950 border border-vault-800 text-xs text-vault-300 hover:text-white transition"
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white dark:bg-vault-950 border border-slate-200 dark:border-vault-800 text-xs text-slate-600 dark:text-vault-300 hover:text-slate-900 dark:text-white transition"
                 >
                   {copied ? <CheckCircle2 size={14} className="text-emerald-400" /> : <Copy size={14} />}
                   {copied ? "Link Copied" : "Copy Verification URL"}
@@ -209,7 +209,7 @@ export default function EvidenceQRLabelModal({
                 {canRotate && !confirmRotate && (
                   <button
                     onClick={() => setConfirmRotate(true)}
-                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-vault-950 border border-amber-900/60 text-xs text-amber-300 hover:bg-amber-950/40 transition"
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white dark:bg-vault-950 border border-amber-900/60 text-xs text-amber-300 hover:bg-amber-950/40 transition"
                     title="Invalidate old tag and issue new token"
                   >
                     <RotateCw size={13} /> Rotate QR Tag
@@ -219,7 +219,7 @@ export default function EvidenceQRLabelModal({
 
               <button
                 onClick={handlePrint}
-                className="flex items-center gap-2 px-4 py-2 bg-vault-600 hover:bg-vault-500 text-white text-sm font-semibold rounded-lg shadow-lg shadow-vault-950/50 transition"
+                className="flex items-center gap-2 px-4 py-2 bg-vault-600 hover:bg-blue-600 dark:bg-vault-500 text-white text-sm font-semibold rounded-lg shadow-lg shadow-vault-950/50 transition"
               >
                 <Printer size={16} /> Print Physical Label
               </button>

@@ -30,7 +30,7 @@ cp .env.example apps/api/.env
 Edit `apps/api/.env` and set `DATABASE_URL` to your Postgres instance, e.g.:
 
 ```
-DATABASE_URL="postgresql://postgres:postgres@localhost:5432/nyayavault?schema=public"
+DATABASE_URL="postgresql://postgres:psfpass@localhost:5432/nyayavault?schema=public"
 ```
 
 ## 3. Create the database schema

@@ -84,12 +84,12 @@ export default function EvidenceDetail() {
 
   return (
     <div>
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-vault-800 bg-vault-950/50 px-8 py-6">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-200 dark:border-vault-800 bg-white dark:bg-vault-950/50 px-8 py-6">
         <div>
           <h1 className="text-2xl font-bold text-white tracking-tight">{ev.name}</h1>
-          <p className="text-sm text-vault-400 mt-1">
+          <p className="text-sm text-slate-500 dark:text-vault-400 mt-1">
             Case:{" "}
-            <Link to={`/cases/${ev.case.id}`} className="text-vault-200 hover:text-white hover:underline font-mono">
+            <Link to={`/cases/${ev.case.id}`} className="text-slate-700 dark:text-vault-200 hover:text-white hover:underline font-mono">
               {ev.case.caseNumber}
             </Link>{" "}
             — {ev.case.title}
@@ -99,7 +99,7 @@ export default function EvidenceDetail() {
         <div className="flex items-center gap-3">
           <button
             onClick={() => setShowQRModal(true)}
-            className="flex items-center gap-2 px-4 py-2 bg-vault-800 hover:bg-vault-700 text-vault-100 text-sm font-semibold rounded-lg border border-vault-700 shadow-sm transition"
+            className="flex items-center gap-2 px-4 py-2 bg-slate-100 dark:bg-vault-800 hover:bg-slate-700 dark:bg-vault-700 text-slate-800 dark:text-vault-100 text-sm font-semibold rounded-lg border border-slate-300 dark:border-vault-700 shadow-sm transition"
           >
             <QrCode size={16} /> Physical QR Label
           </button>

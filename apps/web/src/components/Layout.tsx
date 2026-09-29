@@ -13,7 +13,6 @@ import {
   Bell,
   Users,
   ShieldAlert,
-  Settings,
   LogOut,
   Moon,
   Sun,
@@ -30,8 +29,6 @@ interface NavItem {
 
 const ALL: Role[] = ["ADMIN", "INVESTIGATING_OFFICER", "SENIOR_OFFICER", "FORENSIC_OFFICER", "LEGAL_OFFICER"];
 
-// This list only decides which links are SHOWN. It is a convenience, not the
-// security boundary: every page calls an API that enforces RBAC on the server.
 const NAV_ITEMS: NavItem[] = [
   { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard, roles: ALL },
   { to: "/cases", label: "Cases", icon: FolderKanban, roles: ["ADMIN", "INVESTIGATING_OFFICER", "SENIOR_OFFICER", "LEGAL_OFFICER"] },
@@ -44,7 +41,6 @@ const NAV_ITEMS: NavItem[] = [
   { to: "/notifications", label: "Notifications", icon: Bell, roles: ALL },
   { to: "/users", label: "Users", icon: Users, roles: ["ADMIN"] },
   { to: "/security", label: "Security", icon: ShieldAlert, roles: ["ADMIN", "SENIOR_OFFICER", "INVESTIGATING_OFFICER"] },
-  { to: "/settings", label: "Settings", icon: Settings, roles: ALL },
 ];
 
 export default function Layout() {
@@ -54,7 +50,6 @@ export default function Layout() {
   
   // Theme Toggle Logic
   const [isDark, setIsDark] = useState(() => {
-    // Default to light mode for government feel, unless user previously selected dark
     if (typeof window !== 'undefined') {
       return localStorage.getItem('theme') === 'dark';
     }
@@ -71,7 +66,6 @@ export default function Layout() {
     }
   }, [isDark]);
 
-  // Refresh the unread badge on every navigation and every 30 seconds.
   useEffect(() => {
     if (!user) return;
     let cancelled = false;
@@ -95,41 +89,49 @@ export default function Layout() {
   const items = NAV_ITEMS.filter((item) => item.roles.includes(user.role));
 
   return (
-    <div className="min-h-screen flex bg-slate-50 dark:bg-vault-950 text-slate-900 dark:text-vault-100 transition-colors duration-200">
-      <aside className="w-64 shrink-0 bg-white dark:bg-vault-900 border-r border-slate-200 dark:border-vault-800 flex flex-col transition-colors duration-200">
-        <div className="flex justify-center px-5 py-6 border-b border-slate-200 dark:border-vault-800 bg-slate-50 dark:bg-vault-950 transition-colors">
-          <img src="/logo.png" alt="NyayaVault" className="h-20 object-contain drop-shadow-sm dark:bg-white dark:rounded-xl dark:px-3 dark:py-1 dark:shadow-none" />
+    <div className="min-h-screen flex bg-slate-50 dark:bg-[#0a0f16] text-slate-900 dark:text-vault-100 transition-colors duration-200 relative overflow-hidden">
+      
+      {/* Absolute Dot Pattern Background */}
+      <div className="absolute inset-0 bg-dot-pattern pointer-events-none z-0"></div>
+
+      <aside className="w-64 shrink-0 glass border-r border-slate-200/50 dark:border-[#28374b]/50 flex flex-col transition-colors duration-200 relative z-10 shadow-2xl">
+        <div className="flex justify-center px-5 py-6 border-b border-slate-200/50 dark:border-[#28374b]/50 bg-white/40 dark:bg-vault-900/40 backdrop-blur-md transition-colors">
+          <img src="/logo.png" alt="NyayaVault" className="h-16 object-contain drop-shadow-md dark:bg-white/90 dark:rounded-xl dark:px-3 dark:py-1 dark:shadow-none hover:scale-105 transition-transform duration-300" />
         </div>
-        <nav className="flex-1 overflow-y-auto py-3 px-2 space-y-0.5">
+        <nav className="flex-1 overflow-y-auto py-4 px-3 space-y-1 custom-scrollbar">
           {items.map((item) => (
             <NavLink
               key={item.to}
               to={item.to}
               className={({ isActive }) =>
-                `flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition ${
+                `flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 ${
                   isActive
-                    ? "bg-blue-50 text-blue-700 font-medium dark:bg-vault-700 dark:text-white dark:font-normal"
-                    : "text-slate-600 hover:bg-slate-100 hover:text-slate-900 dark:text-vault-300 dark:hover:bg-vault-800 dark:hover:text-white"
+                    ? "bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-md shadow-blue-500/20 dark:shadow-indigo-900/40 translate-x-1"
+                    : "text-slate-600 hover:bg-slate-200/50 hover:text-slate-900 dark:text-vault-300 dark:hover:bg-vault-800/50 dark:hover:text-white"
                 }`
               }
             >
-              <item.icon size={16} />
-              <span className="flex-1">{item.label}</span>
-              {item.to === "/notifications" && unread > 0 && (
-                <span className="text-[10px] bg-blue-600 dark:bg-vault-500 text-white rounded-full px-1.5 py-0.5">{unread}</span>
+              {({ isActive }) => (
+                <>
+                  <item.icon size={18} className={isActive ? "animate-pulse" : ""} />
+                  <span className="flex-1">{item.label}</span>
+                  {item.to === "/notifications" && unread > 0 && (
+                    <span className="text-[10px] bg-red-500 text-white font-bold rounded-full px-2 py-0.5 shadow-sm shadow-red-500/40">{unread}</span>
+                  )}
+                </>
               )}
             </NavLink>
           ))}
         </nav>
-        <div className="border-t border-slate-200 dark:border-vault-800 p-3 flex flex-col gap-1">
+        <div className="border-t border-slate-200/50 dark:border-[#28374b]/50 p-4 flex flex-col gap-2 bg-white/30 dark:bg-vault-900/30 backdrop-blur-md">
           <div className="px-2 mb-2">
-            <p className="text-sm text-slate-900 dark:text-white truncate font-medium">{user.name}</p>
-            <p className="text-xs text-slate-500 dark:text-vault-400">{user.role.replace(/_/g, " ")}</p>
+            <p className="text-sm text-slate-900 dark:text-white truncate font-bold">{user.name}</p>
+            <p className="text-[10px] uppercase tracking-widest font-semibold text-blue-600 dark:text-blue-400 mt-0.5">{user.role.replace(/_/g, " ")}</p>
           </div>
           
           <button
             onClick={() => setIsDark(!isDark)}
-            className="w-full flex items-center justify-between px-3 py-2 rounded-lg text-sm text-slate-600 hover:bg-slate-100 hover:text-slate-900 dark:text-vault-300 dark:hover:bg-vault-800 dark:hover:text-white transition"
+            className="w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-sm font-medium text-slate-600 hover:bg-slate-200/50 hover:text-slate-900 dark:text-vault-300 dark:hover:bg-vault-800/50 dark:hover:text-white transition-all"
           >
             <div className="flex items-center gap-2">
               {isDark ? <Sun size={16} /> : <Moon size={16} />}
@@ -139,14 +141,17 @@ export default function Layout() {
 
           <button
             onClick={logout}
-            className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm text-red-600 hover:bg-red-50 hover:text-red-700 dark:text-vault-300 dark:hover:bg-vault-800 dark:hover:text-white transition"
+            className="w-full flex items-center gap-2 px-3 py-2.5 rounded-xl text-sm font-medium text-red-600 hover:bg-red-50 hover:text-red-700 dark:text-red-400 dark:hover:bg-red-900/20 dark:hover:text-red-300 transition-all"
           >
-            <LogOut size={16} /> Sign out
+            <LogOut size={16} /> Secure Sign Out
           </button>
         </div>
       </aside>
-      <main className="flex-1 overflow-y-auto">
-        <Outlet />
+      <main className="flex-1 overflow-y-auto relative z-10 transition-all duration-300 ease-in-out">
+        {/* Simple fade-in wrapper based on key */}
+        <div key={location.pathname} className="animate-fade-in-up">
+          <Outlet />
+        </div>
       </main>
     </div>
   );

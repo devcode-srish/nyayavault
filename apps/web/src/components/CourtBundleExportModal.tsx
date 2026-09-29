@@ -114,18 +114,18 @@ export default function CourtBundleExportModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
-      <div className="bg-vault-900 border border-vault-800 rounded-2xl max-w-2xl w-full p-6 shadow-2xl space-y-6 text-white max-h-[90vh] overflow-y-auto">
+      <div className="bg-white dark:bg-vault-900 border border-slate-200 dark:border-vault-800 rounded-2xl max-w-2xl w-full p-6 shadow-2xl space-y-6 text-slate-900 dark:text-white max-h-[90vh] overflow-y-auto">
         {/* Header */}
-        <div className="flex items-center justify-between border-b border-vault-800 pb-4">
+        <div className="flex items-center justify-between border-b border-slate-200 dark:border-vault-800 pb-4">
           <div className="flex items-center gap-3">
-            <div className="p-2.5 bg-vault-800 rounded-xl text-vault-400 border border-vault-700">
+            <div className="p-2.5 bg-slate-100 dark:bg-vault-800 rounded-xl text-slate-500 dark:text-vault-400 border border-slate-300 dark:border-vault-700">
               <Briefcase size={22} />
             </div>
             <div>
               <h2 className="text-lg font-bold text-white flex items-center gap-2">
                 Export Courtroom Evidence Bundle
               </h2>
-              <p className="text-xs text-vault-400">
+              <p className="text-xs text-slate-500 dark:text-vault-400">
                 Case {caseNumber} — Forensic Archive & Offline Verifier
               </p>
             </div>
@@ -133,7 +133,7 @@ export default function CourtBundleExportModal({
           <button
             onClick={onClose}
             disabled={loading}
-            className="p-1.5 text-vault-400 hover:text-white rounded-lg hover:bg-vault-800 transition disabled:opacity-50"
+            className="p-1.5 text-slate-500 dark:text-vault-400 hover:text-white rounded-lg hover:bg-slate-100 dark:bg-vault-800 transition disabled:opacity-50"
           >
             <X size={20} />
           </button>
@@ -155,7 +155,7 @@ export default function CourtBundleExportModal({
           <form onSubmit={handleGenerateBundle} className="space-y-6">
             <div className="space-y-4">
               <div>
-                <label className="block text-xs font-semibold text-vault-300 uppercase tracking-wider mb-2">
+                <label className="block text-xs font-semibold text-slate-600 dark:text-vault-300 uppercase tracking-wider mb-2">
                   Court Docket / FIR Reference Number (Optional)
                 </label>
                 <input
@@ -164,43 +164,43 @@ export default function CourtBundleExportModal({
                   value={courtRefNumber}
                   onChange={(e) => setCourtRefNumber(e.target.value)}
                   disabled={loading}
-                  className="w-full bg-vault-950 border border-vault-800 rounded-xl px-4 py-2.5 text-sm text-white placeholder-vault-600 focus:outline-none focus:border-vault-500 transition"
+                  className="w-full bg-white dark:bg-vault-950 border border-slate-200 dark:border-vault-800 rounded-xl px-4 py-2.5 text-sm text-slate-900 dark:text-white placeholder-vault-600 focus:outline-none focus:border-vault-500 transition"
                 />
-                <p className="text-[11px] text-vault-500 mt-1">
+                <p className="text-[11px] text-slate-500 dark:text-vault-500 mt-1">
                   Reference recorded in the tamper-evident manifest and cryptographic checkpoint.
                 </p>
               </div>
 
               {/* Package Content Breakdown */}
-              <div className="bg-vault-950/60 border border-vault-800/80 rounded-xl p-4 space-y-3">
-                <p className="text-xs font-semibold text-vault-300 uppercase tracking-wider">
+              <div className="bg-white dark:bg-vault-950/60 border border-slate-200 dark:border-vault-800/80 rounded-xl p-4 space-y-3">
+                <p className="text-xs font-semibold text-slate-600 dark:text-vault-300 uppercase tracking-wider">
                   Included Archive Components
                 </p>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs text-vault-300">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs text-slate-600 dark:text-vault-300">
                   <div className="flex items-center gap-2">
-                    <FileText size={14} className="text-vault-400" /> Multi-Version Exhibits
+                    <FileText size={14} className="text-slate-500 dark:text-vault-400" /> Multi-Version Exhibits
                   </div>
                   <div className="flex items-center gap-2">
-                    <KeyRound size={14} className="text-vault-400" /> Section 65B/BSA Signatures
+                    <KeyRound size={14} className="text-slate-500 dark:text-vault-400" /> Section 65B/BSA Signatures
                   </div>
                   <div className="flex items-center gap-2">
-                    <FileCheck2 size={14} className="text-vault-400" /> Custody Handover Receipts
+                    <FileCheck2 size={14} className="text-slate-500 dark:text-vault-400" /> Custody Handover Receipts
                   </div>
                   <div className="flex items-center gap-2">
-                    <Clock size={14} className="text-vault-400" /> Investigation Timeline
+                    <Clock size={14} className="text-slate-500 dark:text-vault-400" /> Investigation Timeline
                   </div>
                   <div className="flex items-center gap-2">
-                    <Shield size={14} className="text-vault-400" /> NYAYAVAULT-MERKLE-V1 Root
+                    <Shield size={14} className="text-slate-500 dark:text-vault-400" /> NYAYAVAULT-MERKLE-V1 Root
                   </div>
                   <div className="flex items-center gap-2">
-                    <Terminal size={14} className="text-vault-400" /> Standalone verify.js
+                    <Terminal size={14} className="text-slate-500 dark:text-vault-400" /> Standalone verify.js
                   </div>
                 </div>
               </div>
 
               {/* Security & Statutory Disclaimer */}
-              <div className="p-3.5 bg-vault-800/30 border border-vault-800 rounded-xl text-[11px] text-vault-400 space-y-1">
-                <p className="font-medium text-vault-300">Forensic Admissibility Notice</p>
+              <div className="p-3.5 bg-vault-800/30 border border-slate-200 dark:border-vault-800 rounded-xl text-[11px] text-slate-500 dark:text-vault-400 space-y-1">
+                <p className="font-medium text-slate-600 dark:text-vault-300">Forensic Admissibility Notice</p>
                 <p>
                   This self-contained archive is cryptographically sealed in accordance with Section 65B of the Indian Evidence Act / Section 63 of Bharatiya Sakshya Adhiniyam. Cryptographic validity establishes mathematical provenance and does not substitute for judicial appraisal.
                 </p>
@@ -213,14 +213,14 @@ export default function CourtBundleExportModal({
                 type="button"
                 onClick={onClose}
                 disabled={loading}
-                className="px-4 py-2 bg-vault-800 hover:bg-vault-700 text-vault-300 hover:text-white text-sm font-medium rounded-xl transition disabled:opacity-50"
+                className="px-4 py-2 bg-slate-100 dark:bg-vault-800 hover:bg-slate-700 dark:bg-vault-700 text-slate-600 dark:text-vault-300 hover:text-white text-sm font-medium rounded-xl transition disabled:opacity-50"
               >
                 Cancel
               </button>
               <button
                 type="submit"
                 disabled={loading}
-                className="flex items-center gap-2 px-5 py-2 bg-vault-600 hover:bg-vault-500 text-white text-sm font-semibold rounded-xl shadow-lg shadow-vault-950/50 transition disabled:opacity-50"
+                className="flex items-center gap-2 px-5 py-2 bg-vault-600 hover:bg-blue-600 dark:bg-vault-500 text-white text-sm font-semibold rounded-xl shadow-lg shadow-vault-950/50 transition disabled:opacity-50"
               >
                 {loading ? (
                   <>
@@ -250,77 +250,77 @@ export default function CourtBundleExportModal({
             </div>
 
             {/* Bundle Metadata Card */}
-            <div className="bg-vault-950 border border-vault-800 rounded-xl p-4 space-y-3.5 text-xs">
-              <div className="flex justify-between items-center border-b border-vault-800/80 pb-2.5">
-                <span className="text-vault-400">Bundle Identifier:</span>
+            <div className="bg-white dark:bg-vault-950 border border-slate-200 dark:border-vault-800 rounded-xl p-4 space-y-3.5 text-xs">
+              <div className="flex justify-between items-center border-b border-slate-200 dark:border-vault-800/80 pb-2.5">
+                <span className="text-slate-500 dark:text-vault-400">Bundle Identifier:</span>
                 <span className="font-mono font-bold text-white text-sm">
                   {result.bundle?.bundleNumber}
                 </span>
               </div>
 
               {result.bundle?.courtRefNumber && (
-                <div className="flex justify-between items-center border-b border-vault-800/80 pb-2.5">
-                  <span className="text-vault-400">Court Docket Ref:</span>
-                  <span className="text-vault-200">{result.bundle.courtRefNumber}</span>
+                <div className="flex justify-between items-center border-b border-slate-200 dark:border-vault-800/80 pb-2.5">
+                  <span className="text-slate-500 dark:text-vault-400">Court Docket Ref:</span>
+                  <span className="text-slate-700 dark:text-vault-200">{result.bundle.courtRefNumber}</span>
                 </div>
               )}
 
-              <div className="flex justify-between items-center border-b border-vault-800/80 pb-2.5">
-                <span className="text-vault-400">Total Artifacts:</span>
-                <span className="text-vault-200 font-medium">
+              <div className="flex justify-between items-center border-b border-slate-200 dark:border-vault-800/80 pb-2.5">
+                <span className="text-slate-500 dark:text-vault-400">Total Artifacts:</span>
+                <span className="text-slate-700 dark:text-vault-200 font-medium">
                   {result.artifactCount} exhibits / metadata files
                 </span>
               </div>
 
-              <div className="flex justify-between items-center border-b border-vault-800/80 pb-2.5">
-                <span className="text-vault-400">Archive Size:</span>
-                <span className="text-vault-200 font-medium">
+              <div className="flex justify-between items-center border-b border-slate-200 dark:border-vault-800/80 pb-2.5">
+                <span className="text-slate-500 dark:text-vault-400">Archive Size:</span>
+                <span className="text-slate-700 dark:text-vault-200 font-medium">
                   {(result.zipSizeBytes / 1024).toFixed(1)} KB
                 </span>
               </div>
 
-              <div className="space-y-1.5 border-b border-vault-800/80 pb-2.5">
+              <div className="space-y-1.5 border-b border-slate-200 dark:border-vault-800/80 pb-2.5">
                 <div className="flex justify-between items-center">
-                  <span className="text-vault-400">Canonical Merkle Root (V1):</span>
+                  <span className="text-slate-500 dark:text-vault-400">Canonical Merkle Root (V1):</span>
                   <button
                     onClick={() => handleCopy(result.merkleRoot, "root")}
-                    className="flex items-center gap-1 text-[11px] text-vault-400 hover:text-white transition"
+                    className="flex items-center gap-1 text-[11px] text-slate-500 dark:text-vault-400 hover:text-white transition"
                   >
                     {copiedRoot ? <Check size={12} className="text-emerald-400" /> : <Copy size={12} />}
                     {copiedRoot ? "Copied" : "Copy"}
                   </button>
                 </div>
-                <p className="font-mono text-[11px] text-vault-300 break-all bg-vault-900/90 p-2 rounded-lg border border-vault-800">
+                <p className="font-mono text-[11px] text-slate-600 dark:text-vault-300 break-all bg-white dark:bg-vault-900/90 p-2 rounded-lg border border-slate-200 dark:border-vault-800">
                   {result.merkleRoot}
                 </p>
               </div>
 
               <div className="space-y-1.5">
                 <div className="flex justify-between items-center">
-                  <span className="text-vault-400">Authority Key Fingerprint:</span>
+                  <span className="text-slate-500 dark:text-vault-400">Authority Key Fingerprint:</span>
                   <button
                     onClick={() => handleCopy(result.bundle?.authorityKeyFp, "fp")}
-                    className="flex items-center gap-1 text-[11px] text-vault-400 hover:text-white transition"
+                    className="flex items-center gap-1 text-[11px] text-slate-500 dark:text-vault-400 hover:text-white transition"
                   >
                     {copiedFp ? <Check size={12} className="text-emerald-400" /> : <Copy size={12} />}
                     {copiedFp ? "Copied" : "Copy"}
                   </button>
                 </div>
-                <p className="font-mono text-[11px] text-vault-400 break-all bg-vault-900/90 p-2 rounded-lg border border-vault-800">
+                <p className="font-mono text-[11px] text-slate-500 dark:text-vault-400 break-all bg-white dark:bg-vault-900/90 p-2 rounded-lg border border-slate-200 dark:border-vault-800">
                   {result.bundle?.authorityKeyFp}
                 </p>
               </div>
             </div>
 
             {/* Offline Verification Instructions */}
-            <div className="p-3.5 bg-vault-950/80 border border-vault-800 rounded-xl space-y-1.5">
-              <p className="text-xs font-semibold text-vault-300 flex items-center gap-1.5">
-                <Terminal size={14} className="text-vault-400" /> Air-Gapped Offline Verification
+            <div className="p-3.5 bg-white dark:bg-vault-950/80 border border-slate-200 dark:border-vault-800 rounded-xl space-y-1.5">
+              <p className="text-xs font-semibold text-slate-600 dark:text-vault-300 flex items-center gap-1.5">
+                <Terminal size={14} className="text-slate-500 dark:text-vault-400" /> Air-Gapped Offline Verification
               </p>
-              <p className="text-[11px] text-vault-400">
+              <p className="text-[11px] text-slate-500 dark:text-vault-400">
                 To verify independently on an air-gapped machine without internet access:
               </p>
-              <div className="bg-vault-900 px-3 py-2 rounded-lg font-mono text-[11px] text-vault-200 border border-vault-800 select-all">
+              <div className="bg-white dark:bg-vault-900 px-3 py-2 rounded-lg font-mono text-[11px] text-slate-700 dark:text-vault-200 border border-slate-200 dark:border-vault-800 select-all">
                 node verify.js --trusted-authority-fp {result.bundle?.authorityKeyFp?.slice(0, 16)}...
               </div>
             </div>
@@ -330,7 +330,7 @@ export default function CourtBundleExportModal({
               <button
                 type="button"
                 onClick={onClose}
-                className="px-4 py-2 bg-vault-800 hover:bg-vault-700 text-vault-300 hover:text-white text-sm font-medium rounded-xl transition"
+                className="px-4 py-2 bg-slate-100 dark:bg-vault-800 hover:bg-slate-700 dark:bg-vault-700 text-slate-600 dark:text-vault-300 hover:text-white text-sm font-medium rounded-xl transition"
               >
                 Close
               </button>

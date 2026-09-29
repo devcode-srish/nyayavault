@@ -73,7 +73,7 @@ export default function CustodyTimeline({
                 <button
                   type="button"
                   onClick={() => onViewReceipt(e.transferId!)}
-                  className="px-2 py-0.5 rounded bg-vault-950 hover:bg-vault-800 border border-vault-700 text-[11px] font-medium text-vault-300 hover:text-white transition"
+                  className="px-2 py-0.5 rounded bg-white dark:bg-vault-950 hover:bg-slate-100 dark:bg-vault-800 border border-slate-300 dark:border-vault-700 text-[11px] font-medium text-slate-600 dark:text-vault-300 hover:text-slate-900 dark:text-white transition"
                 >
                   View Receipt
                 </button>

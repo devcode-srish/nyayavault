@@ -50,7 +50,6 @@ export default function App() {
             <Route path="/notifications" element={<Notifications />} />
             <Route path="/users" element={<UsersPage />} />
             <Route path="/security" element={<Security />} />
-            <Route path="/settings" element={<ComingSoon title="Settings" phase="Phase 6" />} />
           </Route>
           <Route path="/" element={<Navigate to="/dashboard" replace />} />
           <Route path="*" element={<Navigate to="/dashboard" replace />} />
